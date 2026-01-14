@@ -1,0 +1,51 @@
+<Page
+    x:Class="CostMasterAI.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="32">
+        <StackPanel Spacing="24" MaxWidth="600" HorizontalAlignment="Left">
+
+            <TextBlock Text="Pengaturan Sistem ⚙️" Style="{StaticResource TitleTextBlockStyle}"/>
+
+            <StackPanel Spacing="12" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" Padding="20" CornerRadius="8">
+                <TextBlock Text="Konfigurasi AI (Google Gemini)" FontWeight="Bold" Style="{StaticResource SubtitleTextBlockStyle}"/>
+
+                <TextBlock Text="API Key" Opacity="0.8"/>
+
+                <PasswordBox Password="{Binding ApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             PlaceholderText="Tempel API Key Google AI Studio di sini..."
+                             PasswordRevealMode="Peek"/>
+
+                <TextBlock Text="Dapatkan Key di aistudio.google.com" FontSize="12" Opacity="0.5" FontStyle="Italic"/>
+
+                <TextBlock Text="Model Version" Opacity="0.8" Margin="0,12,0,0"/>
+                <ComboBox ItemsSource="{Binding AvailableModels}" 
+                          SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                          HorizontalAlignment="Stretch"/>
+
+                <TextBlock Text="*Gemini 1.5 Flash direkomendasikan untuk kecepatan." FontSize="12" Opacity="0.5"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <Button Content="Simpan Pengaturan" 
+                        Command="{Binding SaveSettingsCommand}" 
+                        Style="{StaticResource AccentButtonStyle}"
+                        Width="200"/>
+
+                <TextBlock Text="{Binding StatusMessage}" 
+                           VerticalAlignment="Center" 
+                           Foreground="Green" FontWeight="Bold"/>
+            </StackPanel>
+
+            <StackPanel Margin="0,40,0,0" Opacity="0.4">
+                <TextBlock Text="CostMaster AI v1.0.0"/>
+                <TextBlock Text="Developed with WinUI 3 &amp; .NET"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</Page>
