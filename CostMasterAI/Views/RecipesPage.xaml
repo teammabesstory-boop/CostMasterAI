@@ -5,7 +5,12 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:helpers="using:CostMasterAI.Helpers"
     mc:Ignorable="d">
+
+    <Page.Resources>
+        <helpers:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
+    </Page.Resources>
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -21,8 +26,7 @@
 
             <StackPanel Spacing="8">
                 <TextBlock Text="Daftar Menu" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                <TextBox PlaceholderText="Nama Resep Baru..." 
-                         Text="{Binding NewRecipeName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBox PlaceholderText="Nama Resep Baru..." Text="{Binding NewRecipeName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 <Button Content="Buat Resep" Command="{Binding CreateRecipeCommand}" HorizontalAlignment="Stretch"/>
             </StackPanel>
 
@@ -33,8 +37,7 @@
                             <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <TextBlock Text="Total:" Opacity="0.6" FontSize="12"/>
-                                <TextBlock Text="{Binding TotalCost, Converter={StaticResource MoneyConv}}" 
-                                           Opacity="0.6" FontSize="12"/>
+                                <TextBlock Text="{Binding TotalCost, Converter={StaticResource MoneyConv}}" Opacity="0.6" FontSize="12"/>
                             </StackPanel>
                         </StackPanel>
                     </DataTemplate>
@@ -51,7 +54,6 @@
 
             <StackPanel Spacing="12" Margin="0,0,0,12">
                 <TextBlock Text="{Binding SelectedRecipe.Name}" Style="{StaticResource TitleTextBlockStyle}"/>
-
                 <Grid Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" Padding="12" CornerRadius="8">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="AI Chef:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -60,44 +62,94 @@
                         <TextBlock Text="Processing..." Visibility="{Binding IsAiLoading, Converter={StaticResource BoolVisConv}}" VerticalAlignment="Center" FontStyle="Italic" Foreground="Orange"/>
                     </StackPanel>
                 </Grid>
-
                 <TextBlock Text="{Binding SelectedRecipe.Description}" FontStyle="Italic" Opacity="0.7" TextWrapping="Wrap"/>
             </StackPanel>
 
             <TabView Grid.Row="1" IsAddTabButtonVisible="False">
 
-                <TabViewItem Header="🥦 Bahan Baku" IconSource="List">
+                <TabViewItem Header="🥦 Bahan &amp; Yield">
+                    <TabViewItem.IconSource>
+                        <SymbolIconSource Symbol="List"/>
+                    </TabViewItem.IconSource>
+
                     <TabViewItem.Content>
                         <Grid Padding="0,12,0,0">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
-                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,12" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" Padding="12" CornerRadius="8">
+                            <StackPanel Orientation="Vertical" Spacing="8" Margin="0,0,0,12" Background="#11000000" Padding="12" CornerRadius="8">
+                                <TextBlock Text="🏭 Variabel Produksi" FontWeight="Bold" Opacity="0.7"/>
+
+                                <StackPanel Orientation="Horizontal" Spacing="24">
+                                    <StackPanel>
+                                        <TextBlock Text="Penyusutan Masak (Cooking Loss %)" FontSize="12" Opacity="0.6"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBox Text="{Binding SelectedRecipe.CookingLossPercent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" PlaceholderText="0"/>
+                                            <TextBlock Text="%" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <TextBlock Text="Target Berat Matang (g/ml)" FontSize="12" Opacity="0.6"/>
+                                        <TextBox Text="{Binding SelectedRecipe.TargetPortionSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="120" PlaceholderText="0"/>
+                                    </StackPanel>
+
+                                    <Button Command="{Binding RecalculateYieldFromMassCommand}" VerticalAlignment="Bottom" Background="CornflowerBlue" Foreground="White">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <SymbolIcon Symbol="Calculator" />
+                                            <TextBlock Text="Hitung Output Bersih"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <StackPanel VerticalAlignment="Bottom">
+                                        <TextBlock Text="Estimasi Hasil:" FontSize="12"/>
+                                        <TextBlock Text="{Binding SelectedRecipe.YieldQty}" FontSize="20" FontWeight="Bold" Foreground="Orange"/>
+                                        <TextBlock Text="Pcs/Porsi" FontSize="10"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" Padding="12" CornerRadius="8">
                                 <ComboBox Header="Pilih Bahan" ItemsSource="{Binding AvailableIngredients}" SelectedItem="{Binding SelectedIngredientToAdd, Mode=TwoWay}" DisplayMemberPath="Name" Width="200"/>
                                 <TextBox Header="Qty" Text="{Binding UsageQtyInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
                                 <ComboBox Header="Satuan" ItemsSource="{Binding UnitOptions}" SelectedItem="{Binding SelectedUsageUnit, Mode=TwoWay}" Width="100"/>
                                 <Button Content="➕ Tambah" Command="{Binding AddItemToRecipeCommand}" VerticalAlignment="Bottom"/>
                             </StackPanel>
 
-                            <ListView Grid.Row="1" ItemsSource="{Binding SelectedRecipe.Items}">
+                            <ListView Grid.Row="2" ItemsSource="{Binding SelectedRecipe.Items}">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Padding="12" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource SystemControlBackgroundBaseLowBrush}">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="100"/>
                                                 <ColumnDefinition Width="150"/>
                                                 <ColumnDefinition Width="50"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Ingredient.Name}" Grid.Column="0"/>
-                                            <StackPanel Orientation="Horizontal" Grid.Column="1">
+
+                                            <TextBlock Text="{Binding Ingredient.Name}" Grid.Column="0" VerticalAlignment="Center"/>
+
+                                            <StackPanel Orientation="Horizontal" Grid.Column="1" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding UsageQty}"/>
                                                 <TextBlock Text="{Binding UsageUnit}" Margin="4,0,0,0" Opacity="0.6"/>
                                             </StackPanel>
-                                            <TextBlock Text="{Binding CalculatedCost, Converter={StaticResource MoneyConv}}" Grid.Column="2" Foreground="Green"/>
-                                            <Button Grid.Column="3" Content="🗑️" Command="{Binding DataContext.RemoveItemFromRecipeCommand, ElementName=RootPage}" CommandParameter="{Binding}" Background="Transparent"/>
+
+                                            <CheckBox Grid.Column="2" Content="Per Unit?" 
+                                                      IsChecked="{Binding IsUnitBased, Mode=TwoWay}"
+                                                      Command="{Binding Data.ToggleItemUnitBasedCommand, Source={StaticResource ViewModelProxy}}"
+                                                      CommandParameter="{Binding}"
+                                                      ToolTipService.ToolTip="Jika dicentang, qty dikali total produksi (Topping/Packaging)"/>
+
+                                            <TextBlock Text="{Binding CalculatedCost, Converter={StaticResource MoneyConv}}" Grid.Column="3" Foreground="Green" VerticalAlignment="Center"/>
+
+                                            <Button Grid.Column="4" Content="🗑️" 
+                                                    Command="{Binding Data.RemoveItemFromRecipeCommand, Source={StaticResource ViewModelProxy}}" 
+                                                    CommandParameter="{Binding}" 
+                                                    Background="Transparent" VerticalAlignment="Center"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
@@ -106,21 +158,49 @@
                     </TabViewItem.Content>
                 </TabViewItem>
 
-                <TabViewItem Header="⚡ Operasional &amp; Lainnya" IconSource="Setting">
+                <TabViewItem Header="⚡ Operasional &amp; Labor">
+                    <TabViewItem.IconSource>
+                        <SymbolIconSource Symbol="Setting"/>
+                    </TabViewItem.IconSource>
                     <TabViewItem.Content>
                         <Grid Padding="0,12,0,0">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
-                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,12" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" Padding="12" CornerRadius="8">
-                                <TextBox Header="Nama Biaya (Ex: Gas/Packaging)" Text="{Binding NewOverheadName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="250" PlaceholderText="Contoh: Listrik 1 Jam"/>
-                                <TextBox Header="Biaya (Rp)" Text="{Binding NewOverheadCost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
+                            <StackPanel Grid.Row="0" Orientation="Vertical" Spacing="8" Margin="0,0,0,12" Background="#11FF0000" Padding="12" CornerRadius="8">
+                                <TextBlock Text="👷 Biaya Tenaga Kerja (Labor Cost)" FontWeight="Bold" Opacity="0.7"/>
+
+                                <StackPanel Orientation="Horizontal" Spacing="24">
+                                    <StackPanel>
+                                        <TextBlock Text="Durasi Pengerjaan (Menit)" FontSize="12" Opacity="0.6"/>
+                                        <TextBox Text="{Binding SelectedRecipe.LaborMinutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <TextBlock Text="Upah Karyawan per Jam (Rp)" FontSize="12" Opacity="0.6"/>
+                                        <TextBox Text="{Binding SelectedRecipe.LaborHourlyRate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200"/>
+                                    </StackPanel>
+
+                                    <Button Content="Update Biaya Labor" Command="{Binding UpdateRecipeDetailsCommand}" VerticalAlignment="Bottom"/>
+
+                                    <StackPanel VerticalAlignment="Bottom">
+                                        <TextBlock Text="Total Labor:" FontSize="12"/>
+                                        <TextBlock Text="{Binding SelectedRecipe.TotalLaborCost, Converter={StaticResource MoneyConv}}" FontSize="18" FontWeight="Bold" Foreground="OrangeRed"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" Padding="12" CornerRadius="8">
+                                <TextBox Header="Nama (Ex: Minyak/Listrik)" Text="{Binding NewOverheadName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200"/>
+                                <TextBox Header="Total Biaya (Rp)" Text="{Binding NewOverheadCost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                                <TextBox Header="Dibagi Brp Kali?" Text="{Binding UsageCycles, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="120" PlaceholderText="1"/>
                                 <Button Content="➕ Tambah Biaya" Command="{Binding AddOverheadCommand}" VerticalAlignment="Bottom"/>
                             </StackPanel>
 
-                            <ListView Grid.Row="1" ItemsSource="{Binding SelectedRecipe.Overheads}">
+                            <ListView Grid.Row="2" ItemsSource="{Binding SelectedRecipe.Overheads}">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Padding="12" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource SystemControlBackgroundBaseLowBrush}">
@@ -129,16 +209,12 @@
                                                 <ColumnDefinition Width="150"/>
                                                 <ColumnDefinition Width="50"/>
                                             </Grid.ColumnDefinitions>
-
                                             <StackPanel Grid.Column="0">
                                                 <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                                                <TextBlock Text="Biaya Tambahan" FontSize="10" Opacity="0.5"/>
                                             </StackPanel>
-
                                             <TextBlock Text="{Binding Cost, Converter={StaticResource MoneyConv}}" Grid.Column="1" VerticalAlignment="Center" Foreground="OrangeRed"/>
-
                                             <Button Grid.Column="2" Content="🗑️" 
-                                                    Command="{Binding DataContext.RemoveOverheadCommand, ElementName=RootPage}" 
+                                                    Command="{Binding Data.RemoveOverheadCommand, Source={StaticResource ViewModelProxy}}" 
                                                     CommandParameter="{Binding}" 
                                                     Background="Transparent"/>
                                         </Grid>
@@ -167,8 +243,10 @@
                         <TextBlock Text="{Binding SelectedRecipe.TotalMaterialCost, Converter={StaticResource MoneyConv}}" Foreground="Green"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="Operasional:" Opacity="0.7"/>
+                        <TextBlock Text="Labor+Ops:" Opacity="0.7"/>
                         <TextBlock Text="{Binding SelectedRecipe.TotalOverheadCost, Converter={StaticResource MoneyConv}}" Foreground="OrangeRed"/>
+                        <TextBlock Text="+" Opacity="0.5"/>
+                        <TextBlock Text="{Binding SelectedRecipe.TotalLaborCost, Converter={StaticResource MoneyConv}}" Foreground="OrangeRed"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -176,8 +254,7 @@
 
                 <StackPanel Grid.Column="2">
                     <TextBlock Text="TOTAL HPP (MODAL)" Opacity="0.6" FontSize="12"/>
-                    <TextBlock Text="{Binding SelectedRecipe.TotalCost, Converter={StaticResource MoneyConv}}" 
-                               FontSize="20" FontWeight="Bold" Foreground="Red"/>
+                    <TextBlock Text="{Binding SelectedRecipe.TotalCost, Converter={StaticResource MoneyConv}}" FontSize="20" FontWeight="Bold" Foreground="Red"/>
                     <TextBlock Text="Per Batch Produksi" FontSize="10" Opacity="0.5"/>
                 </StackPanel>
 
@@ -186,8 +263,7 @@
                 <StackPanel Grid.Column="4">
                     <TextBlock Text="HARGA JUAL (PER PORSI)" Opacity="0.6" FontSize="12"/>
                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-                        <TextBlock Text="{Binding SelectedRecipe.SuggestedPrice, Converter={StaticResource MoneyConv}}" 
-                                   FontSize="24" FontWeight="Bold" Foreground="Green"/>
+                        <TextBlock Text="{Binding SelectedRecipe.SuggestedPrice, Converter={StaticResource MoneyConv}}" FontSize="24" FontWeight="Bold" Foreground="Green"/>
                         <TextBlock Text="/ Porsi" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                     </StackPanel>
                     <TextBlock Text="Estimasi Margin 50%" FontSize="10" Opacity="0.5" Foreground="Green"/>

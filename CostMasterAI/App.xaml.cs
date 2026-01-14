@@ -18,9 +18,7 @@ namespace CostMasterAI
 
             var services = new ServiceCollection();
 
-            // --- PERBAIKAN PENTING DI SINI ---
-            // Ganti jadi ServiceLifetime.Transient biar tiap ViewModel dapet koneksi database sendiri-sendiri.
-            // Ini mencegah crash "Concurrency" pas generate AI sambil buka halaman lain.
+            // Database Service (Transient biar aman thread-nya)
             services.AddDbContext<AppDbContext>(options => { }, ServiceLifetime.Transient);
 
             services.AddTransient<ViewModels.MainViewModel>();
@@ -28,16 +26,22 @@ namespace CostMasterAI
             services.AddTransient<ViewModels.RecipesViewModel>();
             services.AddSingleton<AIService>();
             services.AddTransient<ViewModels.SettingsViewModel>();
+            services.AddTransient<ViewModels.DashboardViewModel>();
 
             Services = services.BuildServiceProvider();
         }
 
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            // Pake scope buat inisialisasi awal database
             using (var scope = Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                // --- PERBAIKAN DI SINI ---
+                // HAPUS atau COMMENT baris EnsureDeleted() ini selamanya!
+                // db.Database.EnsureDeleted(); <--- JANGAN DIAKTIFKAN LAGI
+
+                // Pastikan database dibuat kalau belum ada
                 db.Database.EnsureCreated();
             }
 
