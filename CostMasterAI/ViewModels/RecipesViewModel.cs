@@ -5,11 +5,10 @@ using CostMasterAI.Services;
 using CostMasterAI.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Text;
 using System.Collections.Generic;
-using System.Text.Json; // Wajib buat parsing
+using System.Text.Json;
 
 namespace CostMasterAI.ViewModels
 {
@@ -29,6 +28,10 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private string _newRecipeName = "";
         [ObservableProperty] private bool _isAiLoading;
 
+        // --- INPUT BARU: OVERHEAD ---
+        [ObservableProperty] private string _newOverheadName = "";
+        [ObservableProperty] private string _newOverheadCost = "";
+
         public RecipesViewModel(AppDbContext dbContext, AIService aiService)
         {
             _dbContext = dbContext;
@@ -42,8 +45,10 @@ namespace CostMasterAI.ViewModels
             AvailableIngredients.Clear();
             foreach (var i in ingredients) AvailableIngredients.Add(i);
 
+            // LOAD LENGKAP: Items + Ingredient DAN Overheads
             var recipes = await _dbContext.Recipes
                 .Include(r => r.Items).ThenInclude(i => i.Ingredient)
+                .Include(r => r.Overheads) // <-- Load Overhead
                 .ToListAsync();
 
             Recipes.Clear();
@@ -62,81 +67,7 @@ namespace CostMasterAI.ViewModels
             NewRecipeName = "";
         }
 
-        // --- FITUR BARU: AUTO GENERATE RESEP & BAHAN ---
-        [RelayCommand]
-        private async Task AutoGenerateIngredientsAsync()
-        {
-            if (SelectedRecipe == null) return;
-            IsAiLoading = true;
-
-            // 1. Minta AI Generate Data JSON
-            string jsonResult = await _aiService.GenerateRecipeDataAsync(SelectedRecipe.Name);
-
-            if (!string.IsNullOrEmpty(jsonResult))
-            {
-                try
-                {
-                    // 2. Parsing JSON ke Object C#
-                    var aiItems = JsonSerializer.Deserialize<List<AiRecipeData>>(jsonResult);
-
-                    if (aiItems != null)
-                    {
-                        foreach (var item in aiItems)
-                        {
-                            // 3. Cek apakah bahan udah ada di DB? (Case insensitive)
-                            var existingIngredient = await _dbContext.Ingredients
-                                .FirstOrDefaultAsync(i => i.Name.ToLower() == item.IngredientName.ToLower());
-
-                            Ingredient ingredientToUse;
-
-                            if (existingIngredient != null)
-                            {
-                                // Kalo udah ada, pake yang ada
-                                ingredientToUse = existingIngredient;
-                            }
-                            else
-                            {
-                                // Kalo belum ada, AUTO CREATE dengan estimasi AI
-                                var newIng = new Ingredient
-                                {
-                                    Name = item.IngredientName,
-                                    PricePerPackage = item.EstimatedPrice, // AI Estimasi Harga
-                                    QuantityPerPackage = item.PackageQty,
-                                    Unit = item.PackageUnit, // AI Estimasi Unit Beli
-                                    YieldPercent = 100 // Default 100 dulu
-                                };
-                                _dbContext.Ingredients.Add(newIng);
-                                await _dbContext.SaveChangesAsync();
-
-                                AvailableIngredients.Add(newIng); // Update UI Dropdown
-                                ingredientToUse = newIng;
-                            }
-
-                            // 4. Masukin ke Resep (RecipeItem)
-                            var recipeItem = new RecipeItem
-                            {
-                                RecipeId = SelectedRecipe.Id,
-                                IngredientId = ingredientToUse.Id,
-                                UsageQty = item.UsageQty,
-                                UsageUnit = item.UsageUnit
-                            };
-                            _dbContext.RecipeItems.Add(recipeItem);
-                        }
-
-                        await _dbContext.SaveChangesAsync();
-                        await ReloadSelectedRecipe(); // Refresh tampilan
-                    }
-                }
-                catch
-                {
-                    // Handle error parsing (bisa tambah dialog error nanti)
-                }
-            }
-
-            IsAiLoading = false;
-        }
-
-        // ... (AddItem, RemoveItem, GenerateDescription, dll SAMA PERSIS KODE LAMA) ...
+        // --- LOGIC TAMBAH BAHAN ---
         [RelayCommand]
         private async Task AddItemToRecipeAsync()
         {
@@ -164,6 +95,96 @@ namespace CostMasterAI.ViewModels
             _dbContext.RecipeItems.Remove(item);
             await _dbContext.SaveChangesAsync();
             await ReloadSelectedRecipe();
+        }
+
+        // --- LOGIC TAMBAH OVERHEAD (OPERASIONAL) ---
+        [RelayCommand]
+        private async Task AddOverheadAsync()
+        {
+            if (SelectedRecipe == null || string.IsNullOrWhiteSpace(NewOverheadName)) return;
+
+            if (decimal.TryParse(NewOverheadCost, out var cost) && cost > 0)
+            {
+                var overhead = new RecipeOverhead
+                {
+                    RecipeId = SelectedRecipe.Id,
+                    Name = NewOverheadName,
+                    Cost = cost
+                };
+                _dbContext.RecipeOverheads.Add(overhead);
+                await _dbContext.SaveChangesAsync();
+
+                await ReloadSelectedRecipe();
+
+                // Reset Form
+                NewOverheadName = "";
+                NewOverheadCost = "";
+            }
+        }
+
+        [RelayCommand]
+        private async Task RemoveOverheadAsync(RecipeOverhead? item)
+        {
+            if (item == null) return;
+            _dbContext.RecipeOverheads.Remove(item);
+            await _dbContext.SaveChangesAsync();
+            await ReloadSelectedRecipe();
+        }
+
+        // --- AI STUFF ---
+        [RelayCommand]
+        private async Task AutoGenerateIngredientsAsync()
+        {
+            if (SelectedRecipe == null) return;
+            IsAiLoading = true;
+            string jsonResult = await _aiService.GenerateRecipeDataAsync(SelectedRecipe.Name);
+
+            if (!string.IsNullOrEmpty(jsonResult))
+            {
+                try
+                {
+                    var aiItems = JsonSerializer.Deserialize<List<AiRecipeData>>(jsonResult);
+                    if (aiItems != null)
+                    {
+                        foreach (var item in aiItems)
+                        {
+                            var existingIngredient = await _dbContext.Ingredients
+                                .FirstOrDefaultAsync(i => i.Name.ToLower() == item.IngredientName.ToLower());
+
+                            Ingredient ingredientToUse;
+                            if (existingIngredient != null) ingredientToUse = existingIngredient;
+                            else
+                            {
+                                var newIng = new Ingredient
+                                {
+                                    Name = item.IngredientName,
+                                    PricePerPackage = item.EstimatedPrice,
+                                    QuantityPerPackage = item.PackageQty,
+                                    Unit = item.PackageUnit,
+                                    YieldPercent = 100
+                                };
+                                _dbContext.Ingredients.Add(newIng);
+                                await _dbContext.SaveChangesAsync();
+                                AvailableIngredients.Add(newIng);
+                                ingredientToUse = newIng;
+                            }
+
+                            var recipeItem = new RecipeItem
+                            {
+                                RecipeId = SelectedRecipe.Id,
+                                IngredientId = ingredientToUse.Id,
+                                UsageQty = item.UsageQty,
+                                UsageUnit = item.UsageUnit
+                            };
+                            _dbContext.RecipeItems.Add(recipeItem);
+                        }
+                        await _dbContext.SaveChangesAsync();
+                        await ReloadSelectedRecipe();
+                    }
+                }
+                catch { }
+            }
+            IsAiLoading = false;
         }
 
         [RelayCommand]
@@ -194,7 +215,9 @@ namespace CostMasterAI.ViewModels
             var id = SelectedRecipe.Id;
             var updatedRecipe = await _dbContext.Recipes
                 .Include(r => r.Items).ThenInclude(i => i.Ingredient)
+                .Include(r => r.Overheads) // Load Overhead juga pas reload
                 .FirstOrDefaultAsync(r => r.Id == id);
+
             var index = Recipes.IndexOf(SelectedRecipe);
             if (index != -1 && updatedRecipe != null)
             {

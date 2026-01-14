@@ -1,6 +1,6 @@
 ﻿using CostMasterAI.Views;
-using CostMasterAI.Services; // <--- Pastiin ada ini
-using Microsoft.Extensions.DependencyInjection; // <--- Dan ini
+using CostMasterAI.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using System;
 
@@ -18,8 +18,11 @@ namespace CostMasterAI
 
             var services = new ServiceCollection();
 
-            // Register Services
-            services.AddDbContext<AppDbContext>();
+            // --- PERBAIKAN PENTING DI SINI ---
+            // Ganti jadi ServiceLifetime.Transient biar tiap ViewModel dapet koneksi database sendiri-sendiri.
+            // Ini mencegah crash "Concurrency" pas generate AI sambil buka halaman lain.
+            services.AddDbContext<AppDbContext>(options => { }, ServiceLifetime.Transient);
+
             services.AddTransient<ViewModels.MainViewModel>();
             services.AddTransient<ViewModels.IngredientsViewModel>();
             services.AddTransient<ViewModels.RecipesViewModel>();
@@ -31,19 +34,12 @@ namespace CostMasterAI
 
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            // --- JURUS PERBAIKAN DIMULAI DARI SINI ---
-
-            // Kita bikin scope sebentar cuma buat manggil database
+            // Pake scope buat inisialisasi awal database
             using (var scope = Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                // Perintah Sakti: "Cek database ada gak? Kalau gak ada, BIKIN SEKARANG + TABELNYA!"
-                // Kita pake yang sinkronus (tanpa Async) biar dia nungguin sampe kelar baru lanjut.
                 db.Database.EnsureCreated();
             }
-
-            // --- PERBAIKAN SELESAI ---
 
             m_window = new MainWindow();
             m_window.Activate();

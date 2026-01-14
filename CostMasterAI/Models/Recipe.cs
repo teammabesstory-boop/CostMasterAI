@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
+using System.Linq; // Wajib buat Sum
 
 namespace CostMasterAI.Models
 {
@@ -8,24 +8,31 @@ namespace CostMasterAI.Models
     {
         [Key]
         public int Id { get; set; }
-
-        [Required]
         public string Name { get; set; } = string.Empty;
-
-        // --- TAMBAHAN BARU ---
-        // Buat nyimpen hasil tulisan AI
         public string Description { get; set; } = string.Empty;
-        // ---------------------
+        public int YieldQty { get; set; } = 1;
 
-        public double YieldQty { get; set; } = 1;
-        public double TargetMarginPercent { get; set; } = 30;
-
+        // Relasi
         public List<RecipeItem> Items { get; set; } = new();
 
-        public decimal TotalCost => Items?.Sum(i => i.CalculatedCost) ?? 0;
-        public decimal CostPerUnit => YieldQty > 0 ? TotalCost / (decimal)YieldQty : 0;
-        public decimal SuggestedPrice => TargetMarginPercent < 100
-            ? CostPerUnit / (decimal)(1 - (TargetMarginPercent / 100))
-            : 0;
+        // --- TAMBAHAN RELASI ---
+        public List<RecipeOverhead> Overheads { get; set; } = new();
+
+        // --- LOGIKA HITUNG CANGGIH ---
+
+        // 1. Biaya Bahan Baku (Food Cost)
+        public decimal TotalMaterialCost => Items?.Sum(i => i.CalculatedCost) ?? 0;
+
+        // 2. Biaya Operasional (Overhead)
+        public decimal TotalOverheadCost => Overheads?.Sum(o => o.Cost) ?? 0;
+
+        // 3. GRAND TOTAL (HPP Batch)
+        public decimal TotalCost => TotalMaterialCost + TotalOverheadCost;
+
+        // 4. HPP Per Porsi
+        public decimal CostPerUnit => YieldQty > 0 ? TotalCost / YieldQty : 0;
+
+        // 5. Harga Jual (Margin 50% - Standard Resto)
+        public decimal SuggestedPrice => CostPerUnit > 0 ? CostPerUnit * 2 : 0;
     }
 }

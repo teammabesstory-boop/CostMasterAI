@@ -5,26 +5,44 @@ using CostMasterAI.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using System;
+using System.Linq;
 
 namespace CostMasterAI.ViewModels
 {
+    // --- UPGRADE: IngredientTab jadi ObservableObject ---
+    public partial class IngredientTab : ObservableObject
+    {
+        [ObservableProperty] private string _header;
+        [ObservableProperty] private string _icon;
+        [ObservableProperty] private ObservableCollection<Ingredient> _ingredients;
+        [ObservableProperty] private bool _isClosable;
+
+        // Link ke Database (Null kalau tab "Draft" atau "Semua Bahan")
+        public int? RecipeId { get; set; }
+
+        // State Edit Mode
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsNotEditing))]
+        private bool _isEditing;
+
+        // Helper buat UI (Kebalikan dari IsEditing)
+        public bool IsNotEditing => !IsEditing;
+    }
+
     public partial class IngredientsViewModel : ObservableObject
     {
         private readonly AppDbContext _dbContext;
 
-        public ObservableCollection<Ingredient> Ingredients { get; } = new();
+        public ObservableCollection<IngredientTab> Tabs { get; } = new();
 
-        // Property Form
+        // Property Form (Global)
         [ObservableProperty] private string _newName = string.Empty;
         [ObservableProperty] private string _newPrice = string.Empty;
         [ObservableProperty] private string _newQty = string.Empty;
         [ObservableProperty] private string _newUnit = "Gram";
         [ObservableProperty] private string _newYield = "100";
-
-        // Logic Edit: Kita simpan ID yang lagi diedit. Kalau 0 berarti mode Add.
         [ObservableProperty] private int _editingId = 0;
-
-        // Property buat label tombol (Simpan vs Update)
         [ObservableProperty] private string _buttonText = "Simpan Baru";
 
         public IngredientsViewModel(AppDbContext dbContext)
@@ -35,28 +53,116 @@ namespace CostMasterAI.ViewModels
 
         public async void LoadDataAsync()
         {
-            var list = await _dbContext.Ingredients.ToListAsync();
-            Ingredients.Clear();
-            foreach (var item in list) Ingredients.Add(item);
+            try
+            {
+                Tabs.Clear();
+
+                // 1. TAB UTAMA
+                var allIngredients = await _dbContext.Ingredients.ToListAsync();
+                Tabs.Add(new IngredientTab
+                {
+                    Header = "📦 Semua Bahan",
+                    Icon = "Home",
+                    IsClosable = false,
+                    Ingredients = new ObservableCollection<Ingredient>(allIngredients)
+                });
+
+                // 2. TAB RESEP
+                var recipes = await _dbContext.Recipes
+                    .Include(r => r.Items)
+                    .ThenInclude(i => i.Ingredient)
+                    .ToListAsync();
+
+                foreach (var recipe in recipes)
+                {
+                    var recipeIngredients = recipe.Items
+                        .Select(i => i.Ingredient)
+                        .Where(i => i != null)
+                        .Distinct()
+                        .ToList();
+
+                    if (recipeIngredients.Any())
+                    {
+                        Tabs.Add(new IngredientTab
+                        {
+                            Header = $"📜 {recipe.Name}",
+                            Icon = "Document",
+                            IsClosable = true,
+                            Ingredients = new ObservableCollection<Ingredient>(recipeIngredients),
+                            RecipeId = recipe.Id // Simpan ID Resep
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error Loading Tabs: {ex.Message}");
+            }
         }
 
-        // COMMAND: Pas user klik tombol Edit di tabel
+        // --- COMMANDS HEADER EDITING ---
+
+        [RelayCommand]
+        public void StartEditTab(IngredientTab tab)
+        {
+            if (tab != null) tab.IsEditing = true;
+        }
+
+        [RelayCommand]
+        public async Task SaveTabHeader(IngredientTab tab)
+        {
+            if (tab == null) return;
+
+            tab.IsEditing = false; // Keluar mode edit
+
+            // Kalau ini Tab Resep, update nama resep di Database juga
+            if (tab.RecipeId.HasValue)
+            {
+                var recipe = await _dbContext.Recipes.FindAsync(tab.RecipeId.Value);
+                if (recipe != null)
+                {
+                    // Hapus emoji "📜 " dari header kalau ada, biar bersih di DB
+                    var cleanName = tab.Header.Replace("📜 ", "").Trim();
+                    recipe.Name = cleanName;
+
+                    _dbContext.Recipes.Update(recipe);
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+        }
+
+        // --- COMMANDS LAIN (Tetap Sama) ---
+
+        [RelayCommand]
+        public void AddNewTab()
+        {
+            Tabs.Add(new IngredientTab
+            {
+                Header = "📝 Draft Baru",
+                Icon = "Edit",
+                IsClosable = true,
+                Ingredients = new ObservableCollection<Ingredient>()
+            });
+        }
+
+        [RelayCommand]
+        public void CloseTab(IngredientTab tabToClose)
+        {
+            if (Tabs.Contains(tabToClose)) Tabs.Remove(tabToClose);
+        }
+
         [RelayCommand]
         private void PrepareEdit(Ingredient item)
         {
-            // Isi form dengan data yang mau diedit
             NewName = item.Name;
             NewPrice = item.PricePerPackage.ToString();
             NewQty = item.QuantityPerPackage.ToString();
             NewUnit = item.Unit;
             NewYield = item.YieldPercent.ToString();
-
-            // Set ID biar tau ini lagi ngedit
             EditingId = item.Id;
             ButtonText = "Update Data";
         }
 
-        // COMMAND: Pas user klik tombol Batal
         [RelayCommand]
         private void CancelEdit()
         {
@@ -67,72 +173,50 @@ namespace CostMasterAI.ViewModels
         private async Task SaveOrUpdateIngredientAsync()
         {
             if (string.IsNullOrWhiteSpace(NewName) || string.IsNullOrWhiteSpace(NewPrice)) return;
-
-            if (decimal.TryParse(NewPrice, out var price) &&
-                double.TryParse(NewQty, out var qty) &&
-                double.TryParse(NewYield, out var yield))
+            if (decimal.TryParse(NewPrice, out var price) && double.TryParse(NewQty, out var qty) && double.TryParse(NewYield, out var yield))
             {
                 if (yield <= 0) yield = 100;
-
-                if (EditingId == 0)
+                try
                 {
-                    // --- MODE ADD BARU ---
-                    var newItem = new Ingredient
+                    if (EditingId == 0)
                     {
-                        Name = NewName,
-                        PricePerPackage = price,
-                        QuantityPerPackage = qty,
-                        Unit = NewUnit,
-                        YieldPercent = yield,
-                        Category = "General"
-                    };
-                    _dbContext.Ingredients.Add(newItem);
-                    await _dbContext.SaveChangesAsync();
-                    Ingredients.Add(newItem);
-                }
-                else
-                {
-                    // --- MODE UPDATE ---
-                    var itemToUpdate = await _dbContext.Ingredients.FindAsync(EditingId);
-                    if (itemToUpdate != null)
-                    {
-                        itemToUpdate.Name = NewName;
-                        itemToUpdate.PricePerPackage = price;
-                        itemToUpdate.QuantityPerPackage = qty;
-                        itemToUpdate.Unit = NewUnit;
-                        itemToUpdate.YieldPercent = yield;
-
-                        _dbContext.Ingredients.Update(itemToUpdate);
+                        var newItem = new Ingredient { Name = NewName, PricePerPackage = price, QuantityPerPackage = qty, Unit = NewUnit, YieldPercent = yield, Category = "General" };
+                        _dbContext.Ingredients.Add(newItem);
                         await _dbContext.SaveChangesAsync();
-
-                        // Refresh List manual biar UI update
-                        var index = Ingredients.IndexOf(itemToUpdate); // Cari index lama (object lama mungkin beda ref)
-                        // Reload total biar aman
-                        LoadDataAsync();
                     }
+                    else
+                    {
+                        var itemToUpdate = await _dbContext.Ingredients.FindAsync(EditingId);
+                        if (itemToUpdate != null)
+                        {
+                            itemToUpdate.Name = NewName; itemToUpdate.PricePerPackage = price; itemToUpdate.QuantityPerPackage = qty; itemToUpdate.Unit = NewUnit; itemToUpdate.YieldPercent = yield;
+                            _dbContext.Ingredients.Update(itemToUpdate);
+                            await _dbContext.SaveChangesAsync();
+                        }
+                    }
+                    ClearForm();
+                    LoadDataAsync();
                 }
-
-                ClearForm();
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"❌ Error Saving: {ex.Message}"); }
             }
         }
 
         private void ClearForm()
         {
-            NewName = "";
-            NewPrice = "";
-            NewQty = "";
-            NewYield = "100";
-            EditingId = 0;
-            ButtonText = "Simpan Baru";
+            NewName = ""; NewPrice = ""; NewQty = ""; NewYield = "100"; EditingId = 0; ButtonText = "Simpan Baru";
         }
 
         [RelayCommand]
         private async Task DeleteIngredientAsync(Ingredient? item)
         {
             if (item == null) return;
-            _dbContext.Ingredients.Remove(item);
-            await _dbContext.SaveChangesAsync();
-            Ingredients.Remove(item);
+            try
+            {
+                _dbContext.Ingredients.Remove(item);
+                await _dbContext.SaveChangesAsync();
+                LoadDataAsync();
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"❌ Error Deleting: {ex.Message}"); }
         }
     }
 }

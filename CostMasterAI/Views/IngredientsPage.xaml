@@ -5,7 +5,12 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:helpers="using:CostMasterAI.Helpers" 
     mc:Ignorable="d">
+
+    <Page.Resources>
+        <helpers:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
+    </Page.Resources>
 
     <Grid Padding="24">
         <Grid.RowDefinitions>
@@ -35,36 +40,70 @@
                     Visibility="{Binding EditingId, Converter={StaticResource BoolVisConv}}"/>
         </StackPanel>
 
-        <controls:DataGrid Grid.Row="2"
-                           ItemsSource="{Binding Ingredients}"
-                           AutoGenerateColumns="False"
-                           GridLinesVisibility="Horizontal">
-            <controls:DataGrid.Columns>
-                <controls:DataGridTextColumn Header="Nama Bahan" Binding="{Binding Name}" Width="*"/>
-                <controls:DataGridTextColumn Header="Harga Beli" Binding="{Binding PricePerPackage, Converter={StaticResource MoneyConv}}"/>
-                <controls:DataGridTextColumn Header="Berat" Binding="{Binding QuantityPerPackage}"/>
-                <controls:DataGridTextColumn Header="Unit" Binding="{Binding Unit}"/>
+        <TabView Grid.Row="2" 
+                 TabItemsSource="{Binding Tabs}" 
+                 IsAddTabButtonVisible="True"
+                 AddTabButtonClick="TabView_AddTabButtonClick"
+                 TabCloseRequested="TabView_TabCloseRequested">
 
-                <controls:DataGridTemplateColumn Header="Actions" Width="120">
-                    <controls:DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button Content="✏️" 
-                                        Command="{Binding PrepareEditCommand, Source={StaticResource TheViewModel}}"
-                                        CommandParameter="{Binding}"
-                                        ToolTipService.ToolTip="Edit Data"
-                                        Background="Transparent" BorderThickness="0"/>
+            <TabView.TabItemTemplate>
+                <DataTemplate>
+                    <TabViewItem IsClosable="{Binding IsClosable}">
+                        <TabViewItem.IconSource>
+                            <SymbolIconSource Symbol="{Binding Icon}"/>
+                        </TabViewItem.IconSource>
 
-                                <Button Content="❌" 
-                                        Command="{Binding DeleteIngredientCommand, Source={StaticResource TheViewModel}}"
-                                        CommandParameter="{Binding}"
-                                        ToolTipService.ToolTip="Hapus Data"
-                                        Background="Transparent" BorderThickness="0"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </controls:DataGridTemplateColumn.CellTemplate>
-                </controls:DataGridTemplateColumn>
-            </controls:DataGrid.Columns>
-        </controls:DataGrid>
+                        <TabViewItem.Header>
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="8" 
+                                            Visibility="{Binding IsNotEditing, Converter={StaticResource BoolVisConv}}"
+                                            DoubleTapped="Header_DoubleTapped"
+                                            Background="Transparent"
+                                            ToolTipService.ToolTip="Klik 2x untuk ubah nama tab">
+
+                                    <TextBlock Text="{Binding Header}" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBox Text="{Binding Header, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                         Visibility="{Binding IsEditing, Converter={StaticResource BoolVisConv}}"
+                                         KeyDown="HeaderTextBox_KeyDown"
+                                         Width="150"/>
+                            </Grid>
+                        </TabViewItem.Header>
+
+                        <TabViewItem.Content>
+                            <controls:DataGrid ItemsSource="{Binding Ingredients}"
+                                               AutoGenerateColumns="False"
+                                               GridLinesVisibility="Horizontal"
+                                               Margin="0,12,0,0">
+                                <controls:DataGrid.Columns>
+                                    <controls:DataGridTextColumn Header="Nama Bahan" Binding="{Binding Name}" Width="*"/>
+                                    <controls:DataGridTextColumn Header="Harga Beli" Binding="{Binding PricePerPackage, Converter={StaticResource MoneyConv}}"/>
+                                    <controls:DataGridTextColumn Header="Berat" Binding="{Binding QuantityPerPackage}"/>
+                                    <controls:DataGridTextColumn Header="Unit" Binding="{Binding Unit}"/>
+
+                                    <controls:DataGridTemplateColumn Header="Actions" Width="120">
+                                        <controls:DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <Button Content="✏️" 
+                                                            Command="{Binding Data.PrepareEditCommand, Source={StaticResource ViewModelProxy}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="Transparent" BorderThickness="0"/>
+                                                    <Button Content="❌" 
+                                                            Command="{Binding Data.DeleteIngredientCommand, Source={StaticResource ViewModelProxy}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="Transparent" BorderThickness="0"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </controls:DataGridTemplateColumn.CellTemplate>
+                                    </controls:DataGridTemplateColumn>
+                                </controls:DataGrid.Columns>
+                            </controls:DataGrid>
+                        </TabViewItem.Content>
+                    </TabViewItem>
+                </DataTemplate>
+            </TabView.TabItemTemplate>
+        </TabView>
     </Grid>
 </Page>

@@ -17,10 +17,6 @@
             <NavigationViewItem Icon="OutlineStar" Content="Recipes (Menu)" Tag="recipes" />
         </NavigationView.MenuItems>
 
-        <NavigationView.FooterMenuItems>
-            <NavigationViewItem Icon="Setting" Content="Settings" Tag="settings" />
-        </NavigationView.FooterMenuItems>
-
         <Frame x:Name="ContentFrame"/>
 
     </NavigationView>
