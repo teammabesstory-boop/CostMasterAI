@@ -10,6 +10,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.UI.ViewManagement;
+using WinRT.Interop;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
 
 namespace CostMasterAI.ViewModels
 {
@@ -207,6 +210,8 @@ namespace CostMasterAI.ViewModels
             IsEditing = true;
         }
 
+
+
         [RelayCommand]
         private void ResetInput()
         {
@@ -217,6 +222,42 @@ namespace CostMasterAI.ViewModels
             InputUnit = "Gram"; // Default Unit
             InputYield = "100";
             IsEditing = false;
+        }
+
+        [RelayCommand]
+        private async Task ImportExcelAsync() // Ganti nama command biar sesuai
+        {
+            try
+            {
+                var picker = new FileOpenPicker();
+                picker.ViewMode = PickerViewMode.List;
+                picker.SuggestedStartLocation = PickerLocationId.Downloads;
+
+                // FILTER HANYA EXCEL
+                picker.FileTypeFilter.Add(".xlsx");
+                picker.FileTypeFilter.Add(".xls");
+
+                // WinUI 3 Window Handle logic
+                // Pastikan App.MainWindow terekspos public static di App.xaml.cs, atau gunakan cara lain untuk dapat window handle
+                var window = App.MainWindow;
+                var hWnd = WindowNative.GetWindowHandle(window);
+                InitializeWithWindow.Initialize(picker, hWnd);
+
+                var file = await picker.PickSingleFileAsync();
+                if (file != null)
+                {
+                    // PANGGIL SEEDER EXCEL
+                    var seeder = new DataSeeder(_dbContext);
+                    await seeder.SeedFromExcelAsync(file);
+
+                    // Refresh Data
+                    LoadDataAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Import Error: {ex.Message}");
+            }
         }
     }
 }

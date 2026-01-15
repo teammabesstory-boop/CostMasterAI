@@ -8,7 +8,10 @@ namespace CostMasterAI
 {
     public partial class App : Application
     {
-        public Window m_window;
+        // Properti Static agar MainWindow bisa diakses dari ViewModel (Penting untuk FilePicker)
+        public static Window MainWindow { get; private set; }
+
+        private Window m_window;
         public IServiceProvider Services { get; }
         public new static App Current => (App)Application.Current;
 
@@ -18,9 +21,10 @@ namespace CostMasterAI
 
             var services = new ServiceCollection();
 
-            // Database Service (Transient biar aman thread-nya)
+            // Database Service (Transient disarankan untuk EF Core di Desktop App)
             services.AddDbContext<AppDbContext>(options => { }, ServiceLifetime.Transient);
 
+            // Register ViewModels & Services
             services.AddTransient<ViewModels.MainViewModel>();
             services.AddTransient<ViewModels.IngredientsViewModel>();
             services.AddTransient<ViewModels.RecipesViewModel>();
@@ -34,19 +38,19 @@ namespace CostMasterAI
 
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
+            // Inisialisasi Database
             using (var scope = Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                // --- PERBAIKAN DI SINI ---
-                // HAPUS atau COMMENT baris EnsureDeleted() ini selamanya!
-                // db.Database.EnsureDeleted(); <--- JANGAN DIAKTIFKAN LAGI
-
-                // Pastikan database dibuat kalau belum ada
+                // Pastikan database ada. Jangan gunakan EnsureDeleted() agar data tidak hilang.
                 db.Database.EnsureCreated();
             }
 
             m_window = new MainWindow();
+
+            // Assign instance window ke properti static
+            MainWindow = m_window;
+
             m_window.Activate();
         }
     }
