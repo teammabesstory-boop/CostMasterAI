@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:CostMasterAI"
     xmlns:helpers="using:CostMasterAI.Helpers">
+
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -12,6 +13,9 @@
 
             <helpers:CurrencyConverter x:Key="MoneyConv"/>
             <helpers:BoolToVisibilityConverter x:Key="BoolVisConv"/>
+
+            <helpers:PercentageToWidthConv x:Key="PercentageToWidthConv"/>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

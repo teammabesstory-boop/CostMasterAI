@@ -30,10 +30,11 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private string _newRecipeName = "";
         [ObservableProperty] private bool _isAiLoading;
 
-        // Input Properties
+        // Inputs
         [ObservableProperty] private string _newOverheadName = "";
         [ObservableProperty] private string _newOverheadCost = "";
         [ObservableProperty] private string _usageCycles = "1";
+        [ObservableProperty] private int _targetScalingQty;
 
         public RecipesViewModel(AppDbContext dbContext, AIService aiService)
         {
@@ -46,15 +47,20 @@ namespace CostMasterAI.ViewModels
         {
             try
             {
-                var ingredients = await _dbContext.Ingredients.ToListAsync();
-                AvailableIngredients.Clear();
-                foreach (var i in ingredients) AvailableIngredients.Add(i);
+                await RefreshIngredientsList();
                 await ReloadRecipesList();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error LoadData: {ex.Message}");
             }
+        }
+
+        private async Task RefreshIngredientsList()
+        {
+            var ingredients = await _dbContext.Ingredients.AsNoTracking().ToListAsync();
+            AvailableIngredients.Clear();
+            foreach (var i in ingredients) AvailableIngredients.Add(i);
         }
 
         private async Task ReloadRecipesList()
@@ -68,18 +74,93 @@ namespace CostMasterAI.ViewModels
             foreach (var r in recipes) Recipes.Add(r);
         }
 
-        // --- COMMAND: UPDATE DATA RESEP (Labor/Loss) ---
-        // Dipanggil saat user ganti angka Loss atau Labor di UI
+        // --- SUB-RECIPE SYNC LOGIC (PENTING) ---
+        // Sinkronisasi data Resep ke Tabel Ingredient
+        private async Task SyncSubRecipeToIngredients(Recipe recipe)
+        {
+            if (recipe == null) return;
+
+            // Cari apakah sudah ada ingredient yang nge-link ke resep ini
+            var linkedIngredient = await _dbContext.Ingredients
+                .FirstOrDefaultAsync(i => i.LinkedRecipeId == recipe.Id);
+
+            if (recipe.IsSubRecipe)
+            {
+                // Jika Resep ini ADALAH Sub-Recipe, update/create ingredient-nya
+                if (linkedIngredient == null)
+                {
+                    linkedIngredient = new Ingredient { LinkedRecipeId = recipe.Id, Category = "Sub-Recipe" };
+                    _dbContext.Ingredients.Add(linkedIngredient);
+                }
+
+                // Update data ingredient sesuai kondisi resep terbaru
+                linkedIngredient.Name = $"[Resep] {recipe.Name}";
+                linkedIngredient.PricePerPackage = recipe.CostPerUnit; // HPP per Porsi jadi Harga Beli
+                linkedIngredient.QuantityPerPackage = 1; // Kita set 1 Porsi
+                linkedIngredient.Unit = "Porsi"; // Satuan default Porsi biar gampang
+                linkedIngredient.YieldPercent = 100;
+
+                await _dbContext.SaveChangesAsync();
+            }
+            else
+            {
+                // Jika Resep ini BUKAN Sub-Recipe lagi (user uncheck), hapus ingredient-nya
+                if (linkedIngredient != null)
+                {
+                    _dbContext.Ingredients.Remove(linkedIngredient);
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+
+            // Refresh dropdown bahan baku di UI
+            await RefreshIngredientsList();
+        }
+
+        // --- COMMANDS YANG MEMICU UPDATE COST & SYNC ---
+
         [RelayCommand]
         private async Task UpdateRecipeDetailsAsync()
         {
             if (SelectedRecipe == null) return;
 
+            SelectedRecipe.LastUpdated = DateTime.Now;
             _dbContext.Recipes.Update(SelectedRecipe);
             await _dbContext.SaveChangesAsync();
 
-            // Trigger update perhitungan total
+            // SYNC SETELAH UPDATE
+            await SyncSubRecipeToIngredients(SelectedRecipe);
+
             OnPropertyChanged(nameof(SelectedRecipe));
+            await ReloadSelectedRecipe();
+        }
+
+        [RelayCommand]
+        private async Task ScaleRecipeAsync()
+        {
+            if (SelectedRecipe == null || TargetScalingQty <= 0) return;
+            double ratio = (double)TargetScalingQty / SelectedRecipe.YieldQty;
+
+            foreach (var item in SelectedRecipe.Items)
+            {
+                if (!item.IsUnitBased) item.UsageQty = item.UsageQty * ratio;
+            }
+
+            if (ratio > 1)
+            {
+                SelectedRecipe.LaborMinutes = SelectedRecipe.LaborMinutes * ratio * 0.8;
+                SelectedRecipe.PrepMinutes = (int)(SelectedRecipe.PrepMinutes * ratio * 0.8);
+            }
+            else
+            {
+                SelectedRecipe.LaborMinutes = SelectedRecipe.LaborMinutes * ratio;
+                SelectedRecipe.PrepMinutes = (int)(SelectedRecipe.PrepMinutes * ratio);
+            }
+
+            SelectedRecipe.YieldQty = TargetScalingQty;
+            _dbContext.Recipes.Update(SelectedRecipe);
+            await _dbContext.SaveChangesAsync();
+
+            await SyncSubRecipeToIngredients(SelectedRecipe); // Sync Scaled Cost
             await ReloadSelectedRecipe();
         }
 
@@ -87,12 +168,10 @@ namespace CostMasterAI.ViewModels
         private async Task RecalculateYieldFromMassAsync()
         {
             if (SelectedRecipe == null || SelectedRecipe.TargetPortionSize <= 0) return;
-
-            // 1. Hitung Berat Mentah Total
             double totalRawMass = 0;
             foreach (var item in SelectedRecipe.Items)
             {
-                if (item.IsUnitBased) continue; // Jangan hitung packaging/topping
+                if (item.IsUnitBased) continue;
                 double rate = UnitHelper.GetConversionRate(item.UsageUnit, "Gram");
                 if (rate <= 0) rate = UnitHelper.GetConversionRate(item.UsageUnit, "ML");
                 if (rate > 0) totalRawMass += item.UsageQty * rate;
@@ -100,32 +179,17 @@ namespace CostMasterAI.ViewModels
 
             if (totalRawMass > 0)
             {
-                // 2. Hitung Penyusutan (Cooking Loss)
-                // Kalau Loss 10%, berarti sisa 90% (Faktor 0.9)
                 double lossFactor = 1 - (SelectedRecipe.CookingLossPercent / 100.0);
                 double netMass = totalRawMass * lossFactor;
-
-                // 3. Bagi dengan Target per Porsi
                 int newYield = (int)(netMass / SelectedRecipe.TargetPortionSize);
-
                 if (newYield < 1) newYield = 1;
-
                 SelectedRecipe.YieldQty = newYield;
                 _dbContext.Recipes.Update(SelectedRecipe);
                 await _dbContext.SaveChangesAsync();
 
+                await SyncSubRecipeToIngredients(SelectedRecipe); // Sync
                 await ReloadSelectedRecipe();
             }
-        }
-
-        // --- COMMANDS LAIN (STANDAR) ---
-        [RelayCommand]
-        private async Task ToggleItemUnitBasedAsync(RecipeItem item)
-        {
-            if (item == null) return;
-            _dbContext.RecipeItems.Update(item);
-            await _dbContext.SaveChangesAsync();
-            await ReloadSelectedRecipe();
         }
 
         [RelayCommand]
@@ -134,51 +198,14 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null || SelectedIngredientToAdd == null) return;
             if (double.TryParse(UsageQtyInput, out var qty) && qty > 0)
             {
-                var newItem = new RecipeItem
-                {
-                    RecipeId = SelectedRecipe.Id,
-                    IngredientId = SelectedIngredientToAdd.Id,
-                    UsageQty = qty,
-                    UsageUnit = SelectedUsageUnit,
-                    IsUnitBased = false
-                };
+                var newItem = new RecipeItem { RecipeId = SelectedRecipe.Id, IngredientId = SelectedIngredientToAdd.Id, UsageQty = qty, UsageUnit = SelectedUsageUnit, IsUnitBased = false };
                 _dbContext.RecipeItems.Add(newItem);
                 await _dbContext.SaveChangesAsync();
+
                 await ReloadSelectedRecipe();
+                await SyncSubRecipeToIngredients(SelectedRecipe); // Cost berubah, sync ke induk
                 UsageQtyInput = "0";
             }
-        }
-
-        [RelayCommand]
-        private async Task AddOverheadAsync()
-        {
-            if (SelectedRecipe == null || string.IsNullOrWhiteSpace(NewOverheadName)) return;
-            if (decimal.TryParse(NewOverheadCost, out var cost) && cost > 0 && double.TryParse(UsageCycles, out var cycles) && cycles > 0)
-            {
-                decimal finalCost = cost / (decimal)cycles;
-                var overhead = new RecipeOverhead
-                {
-                    RecipeId = SelectedRecipe.Id,
-                    Name = NewOverheadName + (cycles > 1 ? $" (1/{cycles} siklus)" : ""),
-                    Cost = finalCost
-                };
-                _dbContext.RecipeOverheads.Add(overhead);
-                await _dbContext.SaveChangesAsync();
-                await ReloadSelectedRecipe();
-                NewOverheadName = ""; NewOverheadCost = ""; UsageCycles = "1";
-            }
-        }
-
-        [RelayCommand]
-        private async Task CreateRecipeAsync()
-        {
-            if (string.IsNullOrWhiteSpace(NewRecipeName)) return;
-            var newRecipe = new Recipe { Name = NewRecipeName, YieldQty = 1 };
-            _dbContext.Recipes.Add(newRecipe);
-            await _dbContext.SaveChangesAsync();
-            Recipes.Add(newRecipe);
-            SelectedRecipe = newRecipe;
-            NewRecipeName = "";
         }
 
         [RelayCommand]
@@ -188,6 +215,23 @@ namespace CostMasterAI.ViewModels
             _dbContext.RecipeItems.Remove(item);
             await _dbContext.SaveChangesAsync();
             await ReloadSelectedRecipe();
+            if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
+        }
+
+        [RelayCommand]
+        private async Task AddOverheadAsync()
+        {
+            if (SelectedRecipe == null || string.IsNullOrWhiteSpace(NewOverheadName)) return;
+            if (decimal.TryParse(NewOverheadCost, out var cost) && cost > 0 && double.TryParse(UsageCycles, out var cycles) && cycles > 0)
+            {
+                decimal finalCost = cost / (decimal)cycles;
+                var overhead = new RecipeOverhead { RecipeId = SelectedRecipe.Id, Name = NewOverheadName + (cycles > 1 ? $" (1/{cycles} siklus)" : ""), Cost = finalCost };
+                _dbContext.RecipeOverheads.Add(overhead);
+                await _dbContext.SaveChangesAsync();
+                await ReloadSelectedRecipe();
+                if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
+                NewOverheadName = ""; NewOverheadCost = ""; UsageCycles = "1";
+            }
         }
 
         [RelayCommand]
@@ -197,6 +241,30 @@ namespace CostMasterAI.ViewModels
             _dbContext.RecipeOverheads.Remove(item);
             await _dbContext.SaveChangesAsync();
             await ReloadSelectedRecipe();
+            if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
+        }
+
+        // --- Standard Commands ---
+        [RelayCommand]
+        private async Task ToggleItemUnitBasedAsync(RecipeItem item)
+        {
+            if (item == null) return;
+            _dbContext.RecipeItems.Update(item);
+            await _dbContext.SaveChangesAsync();
+            await ReloadSelectedRecipe();
+            if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
+        }
+
+        [RelayCommand]
+        private async Task CreateRecipeAsync()
+        {
+            if (string.IsNullOrWhiteSpace(NewRecipeName)) return;
+            var newRecipe = new Recipe { Name = NewRecipeName, YieldQty = 1, Version = "1.0", LastUpdated = DateTime.Now };
+            _dbContext.Recipes.Add(newRecipe);
+            await _dbContext.SaveChangesAsync();
+            Recipes.Add(newRecipe);
+            SelectedRecipe = newRecipe;
+            NewRecipeName = "";
         }
 
         [RelayCommand]
@@ -246,6 +314,7 @@ namespace CostMasterAI.ViewModels
                         }
                         await _dbContext.SaveChangesAsync();
                         await ReloadSelectedRecipe();
+                        await SyncSubRecipeToIngredients(SelectedRecipe);
                     }
                 }
             }
@@ -262,7 +331,7 @@ namespace CostMasterAI.ViewModels
         {
             if (SelectedRecipe == null) return;
             var id = SelectedRecipe.Id;
-            _dbContext.ChangeTracker.Clear(); // PENTING: Clear tracker
+            _dbContext.ChangeTracker.Clear();
             var updatedRecipe = await _dbContext.Recipes
                 .Include(r => r.Items).ThenInclude(i => i.Ingredient)
                 .Include(r => r.Overheads)
@@ -275,6 +344,7 @@ namespace CostMasterAI.ViewModels
                 var index = -1;
                 for (int i = 0; i < Recipes.Count; i++) { if (Recipes[i].Id == id) { index = i; break; } }
                 if (index != -1) { Recipes[index] = updatedRecipe; SelectedRecipe = updatedRecipe; }
+                TargetScalingQty = updatedRecipe.YieldQty;
             }
         }
     }
