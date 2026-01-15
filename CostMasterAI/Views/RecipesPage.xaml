@@ -333,6 +333,7 @@
 
                                 <StackPanel Grid.Column="0" Spacing="24">
                                     <StackPanel Background="{StaticResource CardBackground}" Padding="16" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource CardBorder}">
+
                                         <Grid Margin="0,0,0,8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -344,6 +345,7 @@
                                                 <TextBlock Text="%" FontWeight="Bold" Foreground="Green"/>
                                             </StackPanel>
                                         </Grid>
+
                                         <Slider Value="{Binding SelectedRecipe.TargetMarginPercent, Mode=TwoWay}" Minimum="0" Maximum="90" StepFrequency="5"/>
                                     </StackPanel>
 
@@ -354,6 +356,7 @@
                                     </StackPanel>
 
                                     <StackPanel Background="{StaticResource CardBackground}" Padding="16" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource CardBorder}">
+
                                         <Grid Margin="0,0,0,8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -365,6 +368,7 @@
                                                 <TextBlock Text="%" FontWeight="Bold" Foreground="Orange"/>
                                             </StackPanel>
                                         </Grid>
+
                                         <Slider Value="{Binding SelectedRecipe.OnlineMarkupPercent, Mode=TwoWay}" Minimum="0" Maximum="50"/>
                                     </StackPanel>
 
@@ -398,6 +402,174 @@
                                 </StackPanel>
                             </Grid>
                         </TabViewItem>
+
+                        <TabViewItem Header="Cost Engineering (AI)">
+                            <TabViewItem.IconSource>
+                                <SymbolIconSource Symbol="Contact"/>
+                            </TabViewItem.IconSource>
+
+                            <ScrollViewer Padding="0,16,0,0">
+                                <StackPanel Spacing="24">
+                                    <TextBlock Text="🤖 AI Business Consultant" Style="{StaticResource SubtitleTextBlockStyle}" Opacity="0.5"/>
+
+                                    <Grid Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <TextBlock Text="🔍 Recipe Auditor" FontWeight="Bold" Foreground="CornflowerBlue"/>
+                                                <TextBlock Text="Analisa kewajaran Food Cost dibanding standar industri." FontSize="10" Opacity="0.6"/>
+                                            </StackPanel>
+                                            <Button HorizontalAlignment="Right" Command="{Binding AuditRecipeCostCommand}" IsEnabled="{Binding IsAuditing, Converter={StaticResource BoolNegationConv}}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <ProgressRing IsActive="{Binding IsAuditing}" Width="16" Height="16" Visibility="{Binding IsAuditing, Converter={StaticResource BoolVisConv}}"/>
+                                                    <TextBlock Text="Audit Sekarang"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <TextBox Grid.Row="1" Text="{Binding AiAuditReport, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" Background="#05000000"/>
+                                    </Grid>
+
+                                    <Grid Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <TextBlock Text="📉 Smart Substitution" FontWeight="Bold" Foreground="Green"/>
+                                                <TextBlock Text="Saran penggantian bahan mahal untuk hemat HPP." FontSize="10" Opacity="0.6"/>
+                                            </StackPanel>
+                                            <Button HorizontalAlignment="Right" Command="{Binding GetSubstitutionIdeasCommand}" IsEnabled="{Binding IsSubstituting, Converter={StaticResource BoolNegationConv}}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <ProgressRing IsActive="{Binding IsSubstituting}" Width="16" Height="16" Visibility="{Binding IsSubstituting, Converter={StaticResource BoolVisConv}}"/>
+                                                    <TextBlock Text="Cari Alternatif"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <TextBox Grid.Row="1" Text="{Binding AiSubstitutionReport, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" Background="#05000000"/>
+                                    </Grid>
+
+                                    <Grid Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <TextBlock Text="♻️ Waste To Profit" FontWeight="Bold" Foreground="Orange"/>
+                                                <TextBlock Text="Ide menu baru dari sisa bahan (Zero Waste)." FontSize="10" Opacity="0.6"/>
+                                            </StackPanel>
+                                            <Button HorizontalAlignment="Right" Command="{Binding GetWasteIdeasCommand}" IsEnabled="{Binding IsWasteAnalyzing, Converter={StaticResource BoolNegationConv}}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <ProgressRing IsActive="{Binding IsWasteAnalyzing}" Width="16" Height="16" Visibility="{Binding IsWasteAnalyzing, Converter={StaticResource BoolVisConv}}"/>
+                                                    <TextBlock Text="Analisa Limbah"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <TextBox Grid.Row="1" Text="{Binding AiWasteReport, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" Background="#05000000"/>
+                                    </Grid>
+
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabViewItem>
+
+                        <TabViewItem Header="Creative Studio">
+                            <TabViewItem.IconSource>
+                                <SymbolIconSource Symbol="Video"/>
+                            </TabViewItem.IconSource>
+
+                            <ScrollViewer Padding="0,16,0,0">
+                                <StackPanel Spacing="24">
+                                    <TextBlock Text="🎨 Marketing &amp; Content Generator" Style="{StaticResource SubtitleTextBlockStyle}" Opacity="0.5"/>
+
+                                    <Grid Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Spacing="8">
+                                                <TextBlock Text="📱 Social Media Manager" FontWeight="Bold" Foreground="#E1306C"/>
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <ComboBox ItemsSource="{Binding SocialPlatforms}" SelectedItem="{Binding SelectedSocialPlatform, Mode=TwoWay}" Width="140" PlaceholderText="Platform"/>
+                                                    <ComboBox ItemsSource="{Binding SocialTones}" SelectedItem="{Binding SelectedSocialTone, Mode=TwoWay}" Width="140" PlaceholderText="Gaya Bahasa"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <Button Grid.Column="1" VerticalAlignment="Bottom" Command="{Binding GenerateSocialMediaCommand}" IsEnabled="{Binding IsGeneratingSocial, Converter={StaticResource BoolNegationConv}}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <ProgressRing IsActive="{Binding IsGeneratingSocial}" Width="16" Height="16" Visibility="{Binding IsGeneratingSocial, Converter={StaticResource BoolVisConv}}"/>
+                                                    <TextBlock Text="Buat Caption"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <TextBox Grid.Row="1" Text="{Binding AiSocialCaption, Mode=OneWay}" IsReadOnly="False" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" Background="#05000000" PlaceholderText="Hasil caption akan muncul di sini..."/>
+                                    </Grid>
+
+                                    <Grid Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <TextBlock Text="🍽️ Hypnotic Menu Description" FontWeight="Bold" Foreground="Gold"/>
+                                                <TextBlock Text="Deskripsi menu teknik NLP yang menggugah selera." FontSize="10" Opacity="0.6"/>
+                                            </StackPanel>
+                                            <Button HorizontalAlignment="Right" Command="{Binding GenerateHypnoticDescCommand}" IsEnabled="{Binding IsGeneratingHypnotic, Converter={StaticResource BoolNegationConv}}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <ProgressRing IsActive="{Binding IsGeneratingHypnotic}" Width="16" Height="16" Visibility="{Binding IsGeneratingHypnotic, Converter={StaticResource BoolVisConv}}"/>
+                                                    <TextBlock Text="Generate Deskripsi"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <TextBox Grid.Row="1" Text="{Binding AiHypnoticDesc, Mode=OneWay}" IsReadOnly="False" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" Background="#05000000"/>
+                                    </Grid>
+
+                                    <Grid Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <TextBlock Text="📸 AI Art Director (Image Prompt)" FontWeight="Bold" Foreground="Cyan"/>
+                                                <TextBlock Text="Dapatkan 'Prompt Ajaib' untuk membuat foto makanan realistis di Midjourney/Bing Image Creator." FontSize="10" Opacity="0.6"/>
+                                            </StackPanel>
+                                            <Button HorizontalAlignment="Right" Command="{Binding GenerateImagePromptCommand}" IsEnabled="{Binding IsGeneratingImagePrompt, Converter={StaticResource BoolNegationConv}}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <ProgressRing IsActive="{Binding IsGeneratingImagePrompt}" Width="16" Height="16" Visibility="{Binding IsGeneratingImagePrompt, Converter={StaticResource BoolVisConv}}"/>
+                                                    <TextBlock Text="Buat Prompt Gambar"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <TextBox Grid.Row="1" Text="{Binding AiImagePrompt, Mode=OneWay}" IsReadOnly="False" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" Background="#05000000" ToolTipService.ToolTip="Copy teks ini lalu paste di Bing Image Creator"/>
+                                    </Grid>
+
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabViewItem>
+
                     </TabView>
                 </StackPanel>
             </ScrollViewer>

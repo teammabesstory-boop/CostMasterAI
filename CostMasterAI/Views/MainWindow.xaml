@@ -15,6 +15,7 @@
             <NavigationViewItem Icon="Home" Content="Dashboard" Tag="home" />
             <NavigationViewItem Icon="Library" Content="Ingredients (Gudang)" Tag="ingredients" />
             <NavigationViewItem Icon="OutlineStar" Content="Recipes (Menu)" Tag="recipes" />
+            <NavigationViewItem Icon="Shop" Content="Shopping List" Tag="shopping" />
         </NavigationView.MenuItems>
 
         <Frame x:Name="ContentFrame"/>

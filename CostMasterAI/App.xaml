@@ -13,8 +13,9 @@
 
             <helpers:CurrencyConverter x:Key="MoneyConv"/>
             <helpers:BoolToVisibilityConverter x:Key="BoolVisConv"/>
-
             <helpers:PercentageToWidthConv x:Key="PercentageToWidthConv"/>
+
+            <helpers:BoolNegationConverter x:Key="BoolNegationConv"/>
 
         </ResourceDictionary>
     </Application.Resources>

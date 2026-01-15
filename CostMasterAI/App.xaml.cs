@@ -27,6 +27,7 @@ namespace CostMasterAI
             services.AddSingleton<AIService>();
             services.AddTransient<ViewModels.SettingsViewModel>();
             services.AddTransient<ViewModels.DashboardViewModel>();
+            services.AddTransient<ViewModels.ShoppingListViewModel>();
 
             Services = services.BuildServiceProvider();
         }

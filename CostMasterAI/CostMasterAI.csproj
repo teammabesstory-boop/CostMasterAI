@@ -18,6 +18,7 @@
     <None Remove="Views\IngredientsPage.xaml" />
     <None Remove="Views\RecipesPage.xaml" />
     <None Remove="Views\SettingsPage.xaml" />
+    <None Remove="Views\ShoppingListPage.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,6 +50,11 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1-RTM" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.0-experimental4" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\ShoppingListPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\SettingsPage.xaml">

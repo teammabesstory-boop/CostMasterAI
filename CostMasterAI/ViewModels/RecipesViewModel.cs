@@ -19,22 +19,52 @@ namespace CostMasterAI.ViewModels
         private readonly AppDbContext _dbContext;
         private readonly AIService _aiService;
 
+        // Collections
         public ObservableCollection<Recipe> Recipes { get; } = new();
         public ObservableCollection<Ingredient> AvailableIngredients { get; } = new();
         public List<string> UnitOptions => UnitHelper.CommonUnits;
 
+        // Selection & Basic Inputs
         [ObservableProperty] private Recipe? _selectedRecipe;
         [ObservableProperty] private Ingredient? _selectedIngredientToAdd;
         [ObservableProperty] private string _usageQtyInput = "0";
         [ObservableProperty] private string _selectedUsageUnit = "Gram";
         [ObservableProperty] private string _newRecipeName = "";
-        [ObservableProperty] private bool _isAiLoading;
 
-        // Inputs
+        // Input Overhead
         [ObservableProperty] private string _newOverheadName = "";
         [ObservableProperty] private string _newOverheadCost = "";
         [ObservableProperty] private string _usageCycles = "1";
+
+        // Input Simulator
         [ObservableProperty] private int _targetScalingQty;
+
+        // --- AI GENERAL LOADING ---
+        [ObservableProperty] private bool _isAiLoading; // Untuk Deskripsi & Auto-Ingredients
+
+        // --- AI COST ENGINEERING PROPERTIES ---
+        [ObservableProperty] private string _aiAuditReport = "Klik tombol 'Audit' untuk memulai analisa AI.";
+        [ObservableProperty] private string _aiSubstitutionReport = "Klik tombol 'Saran' untuk mencari alternatif bahan.";
+        [ObservableProperty] private string _aiWasteReport = "Klik tombol 'Analisa' untuk ide pemanfaatan limbah.";
+
+        [ObservableProperty] private bool _isAuditing;
+        [ObservableProperty] private bool _isSubstituting;
+        [ObservableProperty] private bool _isWasteAnalyzing;
+
+        // --- AI CREATIVE STUDIO PROPERTIES ---
+        [ObservableProperty] private string _aiSocialCaption = "Pilih platform dan tone, lalu klik Generate.";
+        [ObservableProperty] private string _aiHypnoticDesc = "Klik Generate untuk deskripsi menu level dewa.";
+        [ObservableProperty] private string _aiImagePrompt = "Klik Generate untuk mendapatkan prompt gambar AI.";
+
+        [ObservableProperty] private string _selectedSocialPlatform = "Instagram";
+        [ObservableProperty] private string _selectedSocialTone = "Fun & Gaul";
+
+        public List<string> SocialPlatforms { get; } = new() { "Instagram", "TikTok", "Facebook", "WhatsApp Blast" };
+        public List<string> SocialTones { get; } = new() { "Fun & Gaul", "Elegan & Mewah", "Promo Hard Selling", "Storytelling", "Singkat & Padat" };
+
+        [ObservableProperty] private bool _isGeneratingSocial;
+        [ObservableProperty] private bool _isGeneratingHypnotic;
+        [ObservableProperty] private bool _isGeneratingImagePrompt;
 
         public RecipesViewModel(AppDbContext dbContext, AIService aiService)
         {
@@ -74,37 +104,32 @@ namespace CostMasterAI.ViewModels
             foreach (var r in recipes) Recipes.Add(r);
         }
 
-        // --- SUB-RECIPE SYNC LOGIC (PENTING) ---
-        // Sinkronisasi data Resep ke Tabel Ingredient
+        // --- SUB-RECIPE SYNC LOGIC (CORE) ---
         private async Task SyncSubRecipeToIngredients(Recipe recipe)
         {
             if (recipe == null) return;
 
-            // Cari apakah sudah ada ingredient yang nge-link ke resep ini
             var linkedIngredient = await _dbContext.Ingredients
                 .FirstOrDefaultAsync(i => i.LinkedRecipeId == recipe.Id);
 
             if (recipe.IsSubRecipe)
             {
-                // Jika Resep ini ADALAH Sub-Recipe, update/create ingredient-nya
                 if (linkedIngredient == null)
                 {
                     linkedIngredient = new Ingredient { LinkedRecipeId = recipe.Id, Category = "Sub-Recipe" };
                     _dbContext.Ingredients.Add(linkedIngredient);
                 }
 
-                // Update data ingredient sesuai kondisi resep terbaru
                 linkedIngredient.Name = $"[Resep] {recipe.Name}";
-                linkedIngredient.PricePerPackage = recipe.CostPerUnit; // HPP per Porsi jadi Harga Beli
-                linkedIngredient.QuantityPerPackage = 1; // Kita set 1 Porsi
-                linkedIngredient.Unit = "Porsi"; // Satuan default Porsi biar gampang
+                linkedIngredient.PricePerPackage = recipe.CostPerUnit;
+                linkedIngredient.QuantityPerPackage = 1;
+                linkedIngredient.Unit = "Porsi";
                 linkedIngredient.YieldPercent = 100;
 
                 await _dbContext.SaveChangesAsync();
             }
             else
             {
-                // Jika Resep ini BUKAN Sub-Recipe lagi (user uncheck), hapus ingredient-nya
                 if (linkedIngredient != null)
                 {
                     _dbContext.Ingredients.Remove(linkedIngredient);
@@ -112,11 +137,10 @@ namespace CostMasterAI.ViewModels
                 }
             }
 
-            // Refresh dropdown bahan baku di UI
             await RefreshIngredientsList();
         }
 
-        // --- COMMANDS YANG MEMICU UPDATE COST & SYNC ---
+        // --- COMMANDS: UPDATE & SIMULATOR ---
 
         [RelayCommand]
         private async Task UpdateRecipeDetailsAsync()
@@ -127,7 +151,6 @@ namespace CostMasterAI.ViewModels
             _dbContext.Recipes.Update(SelectedRecipe);
             await _dbContext.SaveChangesAsync();
 
-            // SYNC SETELAH UPDATE
             await SyncSubRecipeToIngredients(SelectedRecipe);
 
             OnPropertyChanged(nameof(SelectedRecipe));
@@ -145,6 +168,7 @@ namespace CostMasterAI.ViewModels
                 if (!item.IsUnitBased) item.UsageQty = item.UsageQty * ratio;
             }
 
+            // Logic waktu masak tidak linear
             if (ratio > 1)
             {
                 SelectedRecipe.LaborMinutes = SelectedRecipe.LaborMinutes * ratio * 0.8;
@@ -160,7 +184,7 @@ namespace CostMasterAI.ViewModels
             _dbContext.Recipes.Update(SelectedRecipe);
             await _dbContext.SaveChangesAsync();
 
-            await SyncSubRecipeToIngredients(SelectedRecipe); // Sync Scaled Cost
+            await SyncSubRecipeToIngredients(SelectedRecipe);
             await ReloadSelectedRecipe();
         }
 
@@ -183,14 +207,17 @@ namespace CostMasterAI.ViewModels
                 double netMass = totalRawMass * lossFactor;
                 int newYield = (int)(netMass / SelectedRecipe.TargetPortionSize);
                 if (newYield < 1) newYield = 1;
+
                 SelectedRecipe.YieldQty = newYield;
                 _dbContext.Recipes.Update(SelectedRecipe);
                 await _dbContext.SaveChangesAsync();
 
-                await SyncSubRecipeToIngredients(SelectedRecipe); // Sync
+                await SyncSubRecipeToIngredients(SelectedRecipe);
                 await ReloadSelectedRecipe();
             }
         }
+
+        // --- COMMANDS: ITEMS & OVERHEADS ---
 
         [RelayCommand]
         private async Task AddItemToRecipeAsync()
@@ -203,7 +230,7 @@ namespace CostMasterAI.ViewModels
                 await _dbContext.SaveChangesAsync();
 
                 await ReloadSelectedRecipe();
-                await SyncSubRecipeToIngredients(SelectedRecipe); // Cost berubah, sync ke induk
+                await SyncSubRecipeToIngredients(SelectedRecipe);
                 UsageQtyInput = "0";
             }
         }
@@ -244,7 +271,6 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
         }
 
-        // --- Standard Commands ---
         [RelayCommand]
         private async Task ToggleItemUnitBasedAsync(RecipeItem item)
         {
@@ -254,6 +280,8 @@ namespace CostMasterAI.ViewModels
             await ReloadSelectedRecipe();
             if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
         }
+
+        // --- COMMANDS: GENERAL ---
 
         [RelayCommand]
         private async Task CreateRecipeAsync()
@@ -267,6 +295,8 @@ namespace CostMasterAI.ViewModels
             NewRecipeName = "";
         }
 
+        // --- COMMANDS: AI FEATURES (BASIC) ---
+
         [RelayCommand]
         private async Task GenerateDescriptionAsync()
         {
@@ -274,6 +304,7 @@ namespace CostMasterAI.ViewModels
             IsAiLoading = true;
             var sb = new StringBuilder();
             foreach (var item in SelectedRecipe.Items) sb.Append($"{item.Ingredient.Name} ({item.UsageQty} {item.UsageUnit}), ");
+
             var result = await _aiService.GenerateMarketingCopyAsync(SelectedRecipe.Name, sb.ToString().TrimEnd(',', ' '));
             SelectedRecipe.Description = result;
             _dbContext.Recipes.Update(SelectedRecipe);
@@ -321,6 +352,132 @@ namespace CostMasterAI.ViewModels
             catch { }
             finally { IsAiLoading = false; }
         }
+
+        // --- COMMANDS: AI COST CONSULTANT ---
+
+        [RelayCommand]
+        private async Task AuditRecipeCostAsync()
+        {
+            if (SelectedRecipe == null) return;
+            IsAuditing = true;
+            AiAuditReport = "Sedang menganalisa resep...";
+            try
+            {
+                AiAuditReport = await _aiService.AuditRecipeCostAsync(SelectedRecipe);
+            }
+            catch (Exception ex)
+            {
+                AiAuditReport = $"Gagal menghubungi AI: {ex.Message}";
+            }
+            finally
+            {
+                IsAuditing = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task GetSubstitutionIdeasAsync()
+        {
+            if (SelectedRecipe == null) return;
+            IsSubstituting = true;
+            AiSubstitutionReport = "Sedang mencari alternatif bahan...";
+            try
+            {
+                AiSubstitutionReport = await _aiService.GetSmartSubstitutionsAsync(SelectedRecipe);
+            }
+            catch (Exception ex)
+            {
+                AiSubstitutionReport = $"Gagal menghubungi AI: {ex.Message}";
+            }
+            finally
+            {
+                IsSubstituting = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task GetWasteIdeasAsync()
+        {
+            if (SelectedRecipe == null) return;
+            IsWasteAnalyzing = true;
+            AiWasteReport = "Sedang menganalisa potensi limbah...";
+            try
+            {
+                AiWasteReport = await _aiService.GetWasteReductionIdeasAsync(SelectedRecipe);
+            }
+            catch (Exception ex)
+            {
+                AiWasteReport = $"Gagal menghubungi AI: {ex.Message}";
+            }
+            finally
+            {
+                IsWasteAnalyzing = false;
+            }
+        }
+
+        // --- COMMANDS: AI CREATIVE STUDIO ---
+
+        [RelayCommand]
+        private async Task GenerateSocialMediaAsync()
+        {
+            if (SelectedRecipe == null) return;
+            IsGeneratingSocial = true;
+            AiSocialCaption = "Sedang meracik kata-kata viral...";
+            try
+            {
+                AiSocialCaption = await _aiService.GenerateSocialMediaCaptionAsync(SelectedRecipe, SelectedSocialPlatform, SelectedSocialTone);
+            }
+            catch (Exception ex)
+            {
+                AiSocialCaption = $"Error: {ex.Message}";
+            }
+            finally
+            {
+                IsGeneratingSocial = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task GenerateHypnoticDescAsync()
+        {
+            if (SelectedRecipe == null) return;
+            IsGeneratingHypnotic = true;
+            AiHypnoticDesc = "Sedang menyusun kalimat hipnotis...";
+            try
+            {
+                AiHypnoticDesc = await _aiService.GenerateHypnoticDescriptionAsync(SelectedRecipe);
+            }
+            catch (Exception ex)
+            {
+                AiHypnoticDesc = $"Error: {ex.Message}";
+            }
+            finally
+            {
+                IsGeneratingHypnotic = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task GenerateImagePromptAsync()
+        {
+            if (SelectedRecipe == null) return;
+            IsGeneratingImagePrompt = true;
+            AiImagePrompt = "Sedang membayangkan visual terbaik...";
+            try
+            {
+                AiImagePrompt = await _aiService.GenerateImagePromptAsync(SelectedRecipe);
+            }
+            catch (Exception ex)
+            {
+                AiImagePrompt = $"Error: {ex.Message}";
+            }
+            finally
+            {
+                IsGeneratingImagePrompt = false;
+            }
+        }
+
+        // --- HELPERS ---
 
         partial void OnSelectedIngredientToAddChanged(Ingredient? value)
         {

@@ -44,6 +44,9 @@ namespace CostMasterAI.Views
                     case "settings": // Handle tag manual juga biar aman
                         ContentFrame.Navigate(typeof(SettingsPage));
                         break;
+                    case "shopping":
+                        ContentFrame.Navigate(typeof(ShoppingListPage));
+                        break;
                 }
             }
         }
