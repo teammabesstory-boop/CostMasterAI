@@ -5,204 +5,265 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:ui="using:CommunityToolkit.WinUI.Controls"
+    xmlns:ani="using:CommunityToolkit.WinUI.Animations"
+    xmlns:helpers="using:CostMasterAI.Helpers"
     mc:Ignorable="d">
 
-    <Grid Padding="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <Page.Resources>
+        <Style x:Key="DashboardCardStyle" TargetType="Grid" BasedOn="{StaticResource ModernCardStyle}">
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Height" Value="160"/>
+        </Style>
 
-        <Grid Margin="0,0,0,24">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            
-            <StackPanel>
-                <TextBlock Text="Executive Dashboard 📊" Style="{StaticResource TitleTextBlockStyle}"/>
-                <TextBlock Text="Enterprise Analytics &amp; Financial Health" Opacity="0.6"/>
-            </StackPanel>
+        <Style x:Key="MatrixCardStyle" TargetType="Grid">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            </Style>
+    </Page.Resources>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <ProgressRing IsActive="{Binding IsLoading}" Width="20" Height="20"/>
-                <TextBlock Text="{Binding StatusMessage}" Opacity="0.5" FontStyle="Italic"/>
-            </StackPanel>
-        </Grid>
+    <ScrollViewer Background="{StaticResource AppBackgroundBrush}">
+        <Grid Padding="32">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
 
-        <TabView Grid.Row="1" IsAddTabButtonVisible="False">
-            
-            <TabViewItem Header="Overview &amp; KPIs">
-                <TabViewItem.IconSource>
-                    <SymbolIconSource Symbol="OutlineStar"/>
-                </TabViewItem.IconSource>
+            <Grid Grid.Row="0" Margin="0,0,0,32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                <TabViewItem.Content>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <Grid Padding="0,20,0,20" RowSpacing="24">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
+                <StackPanel Spacing="4">
+                    <ani:Implicit.ShowAnimations>
+                        <ani:TranslationAnimation Duration="0:0:0.6" From="0, -20, 0" To="0"/>
+                        <ani:OpacityAnimation Duration="0:0:0.6" From="0" To="1"/>
+                    </ani:Implicit.ShowAnimations>
+                    
+                    <TextBlock Text="Executive Dashboard" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="Enterprise Analytics &amp; Financial Health Monitor" Style="{StaticResource SectionHeaderStyle}" Margin="0"/>
+                </StackPanel>
 
-                            <Grid Grid.Row="0" ColumnSpacing="16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button Command="{Binding RefreshDashboardCommand}" Style="{StaticResource ModernButtonStyle}" Background="Transparent">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <SymbolIcon Symbol="Refresh"/>
+                            <TextBlock Text="Refresh Data"/>
+                        </StackPanel>
+                    </Button>
+                    <Border Background="#E5E7EB" CornerRadius="4" Padding="8,4" Visibility="{Binding IsLoading, Converter={StaticResource BoolVisConv}}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ProgressRing IsActive="True" Width="16" Height="16"/>
+                            <TextBlock Text="Analyzing..." FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
 
-                                <Grid Grid.Column="0" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" Padding="20" CornerRadius="12" BorderThickness="1" BorderBrush="#2200FF00">
-                                    <StackPanel>
-                                        <TextBlock Text="Gross Profit Margin (Avg)" Opacity="0.6" FontSize="12" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding GlobalGrossProfitMargin}" FontSize="42" FontWeight="Bold" Foreground="Green" Margin="0,8,0,0"/>
-                                        <TextBlock Text="Target: >50%" FontSize="10" Opacity="0.4" Margin="0,4,0,0"/>
-                                    </StackPanel>
-                                </Grid>
+            <Grid Grid.Row="1" ColumnSpacing="24" Margin="0,0,0,32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                                <Grid Grid.Column="1" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" Padding="20" CornerRadius="12">
-                                    <StackPanel>
-                                        <TextBlock Text="Total HPP Produksi" Opacity="0.6" FontSize="12" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding TotalProductionCost, Converter={StaticResource MoneyConv}}" FontSize="32" FontWeight="Bold" Margin="0,16,0,0"/>
-                                        <TextBlock Text="All Batches Combined" FontSize="10" Opacity="0.4" Margin="0,4,0,0"/>
-                                    </StackPanel>
-                                </Grid>
+                <ani:Implicit.ShowAnimations>
+                    <ani:TranslationAnimation Duration="0:0:0.8" From="0, 40, 0" To="0"/>
+                    <ani:OpacityAnimation Duration="0:0:0.8" From="0" To="1"/>
+                </ani:Implicit.ShowAnimations>
 
-                                <Grid Grid.Column="2" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" Padding="20" CornerRadius="12">
-                                    <StackPanel>
-                                        <TextBlock Text="Efficiency Score" Opacity="0.6" FontSize="12" FontWeight="Bold"/>
-                                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Bottom" Margin="0,8,0,0">
-                                            <TextBlock Text="{Binding EfficiencyScore}" FontSize="42" FontWeight="Bold" Foreground="#2196F3"/>
-                                            <TextBlock Text="/100" FontSize="18" VerticalAlignment="Bottom" Opacity="0.5" Margin="0,0,0,8"/>
-                                        </StackPanel>
-                                        <TextBlock Text="{Binding EfficiencyStatus}" FontWeight="SemiBold" Foreground="Orange"/>
-                                    </StackPanel>
-                                </Grid>
-                            </Grid>
+                <Grid Grid.Column="0" Style="{StaticResource DashboardCardStyle}" Translation="0,0,8">
+                    <Grid.Shadow><ThemeShadow/></Grid.Shadow>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <TextBlock Text="GROSS PROFIT MARGIN" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <FontIcon Glyph="&#xE9D2;" HorizontalAlignment="Right" Foreground="#10B981" Opacity="0.5"/>
+                    </Grid>
+                    <TextBlock Grid.Row="1" Text="{Binding GlobalGrossProfitMargin}" FontSize="42" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Text="Target: >50% (Industry Std)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                </Grid>
 
-                            <Grid Grid.Row="1" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" Padding="20" CornerRadius="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                <Grid Grid.Column="1" Style="{StaticResource DashboardCardStyle}" Translation="0,0,8">
+                    <Grid.Shadow><ThemeShadow/></Grid.Shadow>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <TextBlock Text="TOTAL PRODUCTION COST" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <FontIcon Glyph="&#xE8C7;" HorizontalAlignment="Right" Foreground="#EF4444" Opacity="0.5"/>
+                    </Grid>
+                    <TextBlock Grid.Row="1" Text="{Binding TotalProductionCost, Converter={StaticResource MoneyConv}}" FontSize="32" FontWeight="Bold" Foreground="#1F2937" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Text="Estimasi 1 Batch Produksi Penuh" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                </Grid>
 
-                                <StackPanel Grid.Column="0" Spacing="12" Margin="0,0,24,0">
-                                    <TextBlock Text="💸 Cost Structure Breakdown" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                                    <ItemsControl ItemsSource="{Binding CostStructure}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Margin="0,0,0,12">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="100"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="80"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    
-                                                    <TextBlock Text="{Binding Category}" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                                    
-                                                    <Grid Grid.Column="1" Height="20" Margin="12,0" Background="#22808080" CornerRadius="4">
-                                                        <Grid HorizontalAlignment="Left" Background="{Binding Color}" Width="{Binding Percentage, Converter={StaticResource PercentageToWidthConv}}" CornerRadius="4"/>
-                                                    </Grid>
-                                                    
-                                                    <TextBlock Grid.Column="2" Text="{Binding Amount, Converter={StaticResource MoneyConv}}" HorizontalAlignment="Right" FontSize="12"/>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
+                <Grid Grid.Column="2" Style="{StaticResource DashboardCardStyle}" Translation="0,0,8">
+                    <Grid.Shadow><ThemeShadow/></Grid.Shadow>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <TextBlock Text="EFFICIENCY SCORE" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <FontIcon Glyph="&#xE9D5;" HorizontalAlignment="Right" Foreground="#3B82F6" Opacity="0.5"/>
+                    </Grid>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding EfficiencyScore}" FontSize="42" FontWeight="Bold" Foreground="#3B82F6"/>
+                        <TextBlock Text="/100" FontSize="20" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
+                    </StackPanel>
+                    <TextBlock Grid.Row="2" Text="{Binding EfficiencyStatus}" FontWeight="SemiBold" Foreground="#F59E0B"/>
+                </Grid>
+            </Grid>
 
-                                <StackPanel Grid.Column="1" Spacing="12" BorderThickness="1,0,0,0" BorderBrush="Gray" Padding="24,0,0,0">
-                                    <TextBlock Text="🚨 Top 5 Cost Drivers (Pemborosan)" Style="{StaticResource SubtitleTextBlockStyle}" Foreground="OrangeRed"/>
-                                    <ListView ItemsSource="{Binding TopCostDrivers}" SelectionMode="None">
-                                        <ListView.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Padding="0,8">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                                                        <TextBlock Text="{Binding Percentage}" FontSize="10" Opacity="0.6"/>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="1" Text="{Binding TotalCostContribution, Converter={StaticResource MoneyConv}}" Foreground="Red"/>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListView.ItemTemplate>
-                                    </ListView>
-                                </StackPanel>
-                            </Grid>
+            <Grid Grid.Row="2" ColumnSpacing="32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.2*"/> <ColumnDefinition Width="1.8*"/> </Grid.ColumnDefinitions>
 
-                        </Grid>
-                    </ScrollViewer>
-                </TabViewItem.Content>
-            </TabViewItem>
+                <StackPanel Grid.Column="0" Spacing="24">
+                    <Grid Style="{StaticResource ModernCardStyle}" Translation="0,0,8">
+                        <Grid.Shadow><ThemeShadow/></Grid.Shadow>
+                        <StackPanel Spacing="16">
+                            <TextBlock Text="💸 Cost Structure Breakdown" FontSize="16" FontWeight="Bold"/>
+                            
+                            <ItemsControl ItemsSource="{Binding CostStructure}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,16">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <Grid Margin="0,0,0,8">
+                                                <TextBlock Text="{Binding Category}" FontWeight="SemiBold" FontSize="14"/>
+                                                <TextBlock Text="{Binding Amount, Converter={StaticResource MoneyConv}}" HorizontalAlignment="Right" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            </Grid>
+                                            
+                                            <Grid Grid.Row="1" Height="8" Background="#F3F4F6" CornerRadius="4">
+                                                <Grid HorizontalAlignment="Left" Height="8" CornerRadius="4" 
+                                                      Background="{Binding Color}" 
+                                                      Width="{Binding Percentage, Converter={StaticResource PercentageToWidthConv}, ConverterParameter='3.0'}"/> 
+                                            </Grid>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Grid>
 
-            <TabViewItem Header="Product Matrix (BCG)">
-                <TabViewItem.IconSource>
-                    <SymbolIconSource Symbol="Switch"/>
-                </TabViewItem.IconSource>
+                    <Grid Style="{StaticResource ModernCardStyle}" Translation="0,0,8">
+                        <Grid.Shadow><ThemeShadow/></Grid.Shadow>
+                        <StackPanel Spacing="16">
+                            <TextBlock Text="🚨 Top 5 Pemborosan (Pareto)" FontSize="16" FontWeight="Bold" Foreground="#EF4444"/>
+                            
+                            <ListView ItemsSource="{Binding TopCostDrivers}" SelectionMode="None">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Margin" Value="0,4"/>
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="12,8" Background="#FEF2F2" CornerRadius="6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#991B1B"/>
+                                                <TextBlock Text="{Binding Percentage}" FontSize="11" Opacity="0.7"/>
+                                            </StackPanel>
+                                            
+                                            <TextBlock Grid.Column="1" Text="{Binding TotalCostContribution, Converter={StaticResource MoneyConv}}" 
+                                                       VerticalAlignment="Center" FontWeight="Bold" Foreground="#B91C1C"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
 
-                <TabViewItem.Content>
-                    <Grid Padding="0,20,0,0">
+                <Grid Grid.Column="1" Style="{StaticResource ModernCardStyle}" Translation="0,0,8">
+                    <Grid.Shadow><ThemeShadow/></Grid.Shadow>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Spacing="4" Margin="0,0,0,24">
+                        <TextBlock Text="📊 Product Portfolio Matrix (BCG)" FontSize="18" FontWeight="Bold"/>
+                        <TextBlock Text="Analisa strategi menu berdasarkan Profitabilitas vs Volume Penjualan." FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" ColumnSpacing="16" RowSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Text="Analisa Kuadran Produk" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,24"/>
-
-                        <Grid Grid.Row="1" ColumnSpacing="16" RowSpacing="16">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Grid Grid.Row="0" Grid.Column="0" Background="#1100FF00" BorderBrush="Green" BorderThickness="1" CornerRadius="8" Padding="16">
-                                <StackPanel>
-                                    <TextBlock Text="⭐ STARS" FontWeight="Bold" Foreground="Green" FontSize="18"/>
-                                    <TextBlock Text="Profit Tinggi, Volume Tinggi" FontSize="10" Opacity="0.6"/>
-                                    <TextBlock Text="{Binding StarProductsCount}" FontSize="48" HorizontalAlignment="Right" Foreground="Green"/>
-                                    <TextBlock Text="Produk Juara. Pertahankan kualitas!" FontStyle="Italic" Opacity="0.7"/>
+                        <Grid Grid.Row="0" Grid.Column="1" Style="{StaticResource MatrixCardStyle}" Background="#ECFDF5" BorderBrush="#34D399">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="⭐ STARS" FontWeight="Bold" Foreground="#059669" FontSize="16"/>
                                 </StackPanel>
-                            </Grid>
+                                <TextBlock Text="High Profit, High Sales" FontSize="11" Foreground="#059669" Opacity="0.8" Margin="0,0,0,12"/>
+                                
+                                <TextBlock Text="{Binding StarProductsCount}" FontSize="48" FontWeight="Bold" Foreground="#059669" HorizontalAlignment="Right" Margin="0,-20,0,0"/>
+                                <TextBlock Text="Menu unggulan. Pertahankan kualitas &amp; stok!" FontSize="12" FontStyle="Italic" Foreground="#065F46" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
 
-                            <Grid Grid.Row="0" Grid.Column="1" Background="#11FFFF00" BorderBrush="#FFC107" BorderThickness="1" CornerRadius="8" Padding="16">
-                                <StackPanel>
-                                    <TextBlock Text="🧩 PUZZLES" FontWeight="Bold" Foreground="#FFC107" FontSize="18"/>
-                                    <TextBlock Text="Profit Tinggi, Volume Rendah" FontSize="10" Opacity="0.6"/>
-                                    <TextBlock Text="{Binding PuzzleCount}" FontSize="48" HorizontalAlignment="Right" Foreground="#FFC107"/>
-                                    <TextBlock Text="Perlu Marketing lebih gencar." FontStyle="Italic" Opacity="0.7"/>
+                        <Grid Grid.Row="0" Grid.Column="0" Style="{StaticResource MatrixCardStyle}" Background="#EFF6FF" BorderBrush="#60A5FA">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="🐮 CASH COWS" FontWeight="Bold" Foreground="#2563EB" FontSize="16"/>
                                 </StackPanel>
-                            </Grid>
+                                <TextBlock Text="Low Profit, High Sales" FontSize="11" Foreground="#2563EB" Opacity="0.8" Margin="0,0,0,12"/>
+                                
+                                <TextBlock Text="{Binding CashCowCount}" FontSize="48" FontWeight="Bold" Foreground="#2563EB" HorizontalAlignment="Right" Margin="0,-20,0,0"/>
+                                <TextBlock Text="Mesin uang harian. Coba efisiensikan HPP agar jadi Star!" FontSize="12" FontStyle="Italic" Foreground="#1E40AF" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
 
-                            <Grid Grid.Row="1" Grid.Column="0" Background="#110000FF" BorderBrush="Blue" BorderThickness="1" CornerRadius="8" Padding="16">
-                                <StackPanel>
-                                    <TextBlock Text="🐮 CASH COWS" FontWeight="Bold" Foreground="Blue" FontSize="18"/>
-                                    <TextBlock Text="Profit Rendah, Volume Tinggi" FontSize="10" Opacity="0.6"/>
-                                    <TextBlock Text="{Binding CashCowCount}" FontSize="48" HorizontalAlignment="Right" Foreground="Blue"/>
-                                    <TextBlock Text="Mesin uang. Efisiensikan HPP!" FontStyle="Italic" Opacity="0.7"/>
+                        <Grid Grid.Row="1" Grid.Column="1" Style="{StaticResource MatrixCardStyle}" Background="#FFFBEB" BorderBrush="#FBBF24">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="🧩 PUZZLES" FontWeight="Bold" Foreground="#D97706" FontSize="16"/>
                                 </StackPanel>
-                            </Grid>
+                                <TextBlock Text="High Profit, Low Sales" FontSize="11" Foreground="#D97706" Opacity="0.8" Margin="0,0,0,12"/>
+                                
+                                <TextBlock Text="{Binding PuzzleCount}" FontSize="48" FontWeight="Bold" Foreground="#D97706" HorizontalAlignment="Right" Margin="0,-20,0,0"/>
+                                <TextBlock Text="Potensi besar. Genjot marketing/promo menu ini!" FontSize="12" FontStyle="Italic" Foreground="#92400E" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
 
-                            <Grid Grid.Row="1" Grid.Column="1" Background="#11FF0000" BorderBrush="Red" BorderThickness="1" CornerRadius="8" Padding="16">
-                                <StackPanel>
-                                    <TextBlock Text="🐶 DOGS" FontWeight="Bold" Foreground="Red" FontSize="18"/>
-                                    <TextBlock Text="Profit Rendah, Volume Rendah" FontSize="10" Opacity="0.6"/>
-                                    <TextBlock Text="{Binding DogCount}" FontSize="48" HorizontalAlignment="Right" Foreground="Red"/>
-                                    <TextBlock Text="Evaluasi atau Hapus menu ini." FontStyle="Italic" Opacity="0.7"/>
+                        <Grid Grid.Row="1" Grid.Column="0" Style="{StaticResource MatrixCardStyle}" Background="#FEF2F2" BorderBrush="#F87171">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="🐕 DOGS" FontWeight="Bold" Foreground="#DC2626" FontSize="16"/>
                                 </StackPanel>
-                            </Grid>
+                                <TextBlock Text="Low Profit, Low Sales" FontSize="11" Foreground="#DC2626" Opacity="0.8" Margin="0,0,0,12"/>
+                                
+                                <TextBlock Text="{Binding DogCount}" FontSize="48" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Right" Margin="0,-20,0,0"/>
+                                <TextBlock Text="Beban operasional. Pertimbangkan untuk menghapus menu." FontSize="12" FontStyle="Italic" Foreground="#991B1B" TextWrapping="Wrap"/>
+                            </StackPanel>
                         </Grid>
                     </Grid>
-                </TabViewItem.Content>
-            </TabViewItem>
-
-        </TabView>
-    </Grid>
+                </Grid>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
 </Page>

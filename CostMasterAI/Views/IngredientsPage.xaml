@@ -4,106 +4,210 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
-    xmlns:helpers="using:CostMasterAI.Helpers" 
+    
+    xmlns:ui="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:ani="using:CommunityToolkit.WinUI.Animations"
+    xmlns:helpers="using:CostMasterAI.Helpers"
+    
     mc:Ignorable="d">
 
     <Page.Resources>
         <helpers:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
+
+        <Style x:Key="IngredientCardStyle" TargetType="Grid" BasedOn="{StaticResource ModernCardStyle}">
+            <Setter Property="Padding" Value="24"/>
+        </Style>
     </Page.Resources>
 
-    <Grid Padding="24">
+    <Grid Background="{StaticResource AppBackgroundBrush}" Padding="32">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Supply Room 📦 (Yield &amp; Pricing)" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,24"/>
+        <Grid Grid.Row="0" Margin="0,0,0,32">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12" Margin="0,0,0,24">
-            <TextBox Header="Nama Bahan" Text="{Binding NewName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200"/>
-            <TextBox Header="Harga (Rp)" Text="{Binding NewPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
-            <TextBox Header="Berat Kotor" Text="{Binding NewQty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
-            <TextBox Header="Yield (%)" Text="{Binding NewYield, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" PlaceholderText="100"/>
+            <StackPanel Spacing="4">
+                <ani:Implicit.ShowAnimations>
+                    <ani:TranslationAnimation Duration="0:0:0.6" From="0, -20, 0" To="0"/>
+                    <ani:OpacityAnimation Duration="0:0:0.6" From="0" To="1"/>
+                </ani:Implicit.ShowAnimations>
 
-            <ComboBox Header="Satuan" SelectedItem="{Binding NewUnit, Mode=TwoWay}" Width="100">
-                <x:String>Gram</x:String>
-                <x:String>ML</x:String>
-                <x:String>Pcs</x:String>
-                <x:String>Kg</x:String>
-            </ComboBox>
+                <TextBlock Text="Database Bahan Baku" Style="{StaticResource PageTitleStyle}"/>
+                <TextBlock Text="Kelola harga pasar dan spesifikasi bahan." Style="{StaticResource SectionHeaderStyle}" Margin="0"/>
+            </StackPanel>
 
-            <Button Content="{Binding ButtonText}" Command="{Binding SaveOrUpdateIngredientCommand}" VerticalAlignment="Bottom" Style="{StaticResource AccentButtonStyle}"/>
+            <Grid Grid.Column="1" VerticalAlignment="Center" Width="300">
+                <TextBox PlaceholderText="Cari nama bahan..." Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         CornerRadius="8" BorderThickness="1" Padding="10,8">
+                    <TextBox.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,4">
+                            <FontIcon Glyph="&#xE721;" FontSize="12"/>
+                            <TextBlock Text="Quick Search" FontSize="12" Opacity="0.6"/>
+                        </StackPanel>
+                    </TextBox.Header>
+                </TextBox>
+            </Grid>
+        </Grid>
 
-            <Button Content="Batal" Command="{Binding CancelEditCommand}" VerticalAlignment="Bottom" 
-                    Visibility="{Binding EditingId, Converter={StaticResource BoolVisConv}}"/>
-        </StackPanel>
+        <Grid Grid.Row="1" ColumnSpacing="32">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-        <TabView Grid.Row="2" 
-                 TabItemsSource="{Binding Tabs}" 
-                 IsAddTabButtonVisible="True"
-                 AddTabButtonClick="TabView_AddTabButtonClick"
-                 TabCloseRequested="TabView_TabCloseRequested">
+            <Grid Grid.Column="0" Style="{StaticResource IngredientCardStyle}" VerticalAlignment="Top" Translation="0,0,8">
+                <Grid.Shadow>
+                    <ThemeShadow/>
+                </Grid.Shadow>
 
-            <TabView.TabItemTemplate>
-                <DataTemplate>
-                    <TabViewItem IsClosable="{Binding IsClosable}">
-                        <TabViewItem.IconSource>
-                            <SymbolIconSource Symbol="{Binding Icon}"/>
-                        </TabViewItem.IconSource>
+                <StackPanel Spacing="20">
+                    <Grid BorderThickness="0,0,0,1" BorderBrush="{StaticResource CardBorderBrush}" Padding="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Input Data Bahan" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryAccentBrush}"/>
+                            <TextBlock Text="Isi detail harga beli &amp; kemasan." FontSize="11" Opacity="0.5"/>
+                        </StackPanel>
+                        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Command="{Binding ResetInputCommand}" Background="Transparent" Padding="4" ToolTipService.ToolTip="Reset Form">
+                            <SymbolIcon Symbol="Refresh" Foreground="Gray"/>
+                        </Button>
+                    </Grid>
 
-                        <TabViewItem.Header>
-                            <Grid>
-                                <StackPanel Orientation="Horizontal" Spacing="8" 
-                                            Visibility="{Binding IsNotEditing, Converter={StaticResource BoolVisConv}}"
-                                            DoubleTapped="Header_DoubleTapped"
-                                            Background="Transparent"
-                                            ToolTipService.ToolTip="Klik 2x untuk ubah nama tab">
+                    <TextBox Header="Nama Bahan" PlaceholderText="Contoh: Tepung Segitiga" Text="{Binding InputName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" CornerRadius="4"/>
 
-                                    <TextBlock Text="{Binding Header}" VerticalAlignment="Center"/>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Header="Harga Beli (Rp)" PlaceholderText="0" Text="{Binding InputPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" CornerRadius="4"/>
+                        <TextBox Grid.Column="1" Header="Qty Kemasan" PlaceholderText="1000" Text="{Binding InputQty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" CornerRadius="4"/>
+                    </Grid>
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0" Header="Satuan" ItemsSource="{Binding UnitOptions}" SelectedItem="{Binding InputUnit, Mode=TwoWay}" HorizontalAlignment="Stretch" CornerRadius="4"/>
+                        <TextBox Grid.Column="1" Header="Yield %" Text="{Binding InputYield, Mode=TwoWay}" ToolTipService.ToolTip="Persentase berat bersih" CornerRadius="4"/>
+                    </Grid>
+
+                    <Border Background="#F3F4F6" CornerRadius="8" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="ESTIMASI COST DASAR" FontSize="10" Opacity="0.6" FontWeight="Bold" CharacterSpacing="50"/>
+                                <TextBlock Text="{Binding CalculatedCostPerUnit}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </StackPanel>
+                            <FontIcon Grid.Column="1" Glyph="&#xE8D0;" FontSize="20" Opacity="0.2"/>
+                        </Grid>
+                    </Border>
+
+                    <Button Command="{Binding SaveIngredientCommand}" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Stretch" Height="40">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <SymbolIcon Symbol="Save"/>
+                            <TextBlock Text="Simpan Database"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Column="1" Style="{StaticResource IngredientCardStyle}" Translation="0,0,8">
+                <Grid.Shadow>
+                    <ThemeShadow/>
+                </Grid.Shadow>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Border Background="#E0E7FF" CornerRadius="4" Padding="8,4">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="{Binding Ingredients.Count}" FontWeight="Bold" Foreground="{StaticResource PrimaryAccentBrush}"/>
+                                    <TextBlock Text="Items Terdaftar" Foreground="{StaticResource PrimaryAccentBrush}"/>
                                 </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
 
-                                <TextBox Text="{Binding Header, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                         Visibility="{Binding IsEditing, Converter={StaticResource BoolVisConv}}"
-                                         KeyDown="HeaderTextBox_KeyDown"
-                                         Width="150"/>
-                            </Grid>
-                        </TabViewItem.Header>
+                    <ui:DataGrid Grid.Row="1" ItemsSource="{Binding Ingredients}" 
+                                 AutoGenerateColumns="False"
+                                 GridLinesVisibility="Horizontal"
+                                 VerticalScrollBarVisibility="Auto"
+                                 IsReadOnly="True"
+                                 CanUserSortColumns="True"
+                                 SelectionMode="Single"
+                                 HeadersVisibility="Column"
+                                 BorderThickness="0">
 
-                        <TabViewItem.Content>
-                            <controls:DataGrid ItemsSource="{Binding Ingredients}"
-                                               AutoGenerateColumns="False"
-                                               GridLinesVisibility="Horizontal"
-                                               Margin="0,12,0,0">
-                                <controls:DataGrid.Columns>
-                                    <controls:DataGridTextColumn Header="Nama Bahan" Binding="{Binding Name}" Width="*"/>
-                                    <controls:DataGridTextColumn Header="Harga Beli" Binding="{Binding PricePerPackage, Converter={StaticResource MoneyConv}}"/>
-                                    <controls:DataGridTextColumn Header="Berat" Binding="{Binding QuantityPerPackage}"/>
-                                    <controls:DataGridTextColumn Header="Unit" Binding="{Binding Unit}"/>
+                        <ui:DataGrid.Columns>
+                            <ui:DataGridTemplateColumn Header="Nama Bahan" Width="2*">
+                                <ui:DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontWeight="SemiBold" Margin="12,0"/>
+                                    </DataTemplate>
+                                </ui:DataGridTemplateColumn.CellTemplate>
+                            </ui:DataGridTemplateColumn>
 
-                                    <controls:DataGridTemplateColumn Header="Actions" Width="120">
-                                        <controls:DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <Button Content="✏️" 
-                                                            Command="{Binding Data.PrepareEditCommand, Source={StaticResource ViewModelProxy}}"
-                                                            CommandParameter="{Binding}"
-                                                            Background="Transparent" BorderThickness="0"/>
-                                                    <Button Content="❌" 
-                                                            Command="{Binding Data.DeleteIngredientCommand, Source={StaticResource ViewModelProxy}}"
-                                                            CommandParameter="{Binding}"
-                                                            Background="Transparent" BorderThickness="0"/>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </controls:DataGridTemplateColumn.CellTemplate>
-                                    </controls:DataGridTemplateColumn>
-                                </controls:DataGrid.Columns>
-                            </controls:DataGrid>
-                        </TabViewItem.Content>
-                    </TabViewItem>
-                </DataTemplate>
-            </TabView.TabItemTemplate>
-        </TabView>
+                            <ui:DataGridTemplateColumn Header="Harga Beli" Width="1.5*">
+                                <ui:DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="12,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding PricePerPackage, Converter={StaticResource MoneyConv}}" FontWeight="Medium"/>
+                                            <StackPanel Orientation="Horizontal" Opacity="0.5" Spacing="4">
+                                                <TextBlock Text="per"/>
+                                                <TextBlock Text="{Binding QuantityPerPackage}"/>
+                                                <TextBlock Text="{Binding Unit}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ui:DataGridTemplateColumn.CellTemplate>
+                            </ui:DataGridTemplateColumn>
+
+                            <ui:DataGridTemplateColumn Header="Yield" Width="*">
+                                <ui:DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" CornerRadius="4" Padding="8,2" HorizontalAlignment="Left" Margin="12,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding YieldPercent}" FontWeight="Bold" FontSize="12"/>
+                                                <TextBlock Text="%" FontWeight="Bold" FontSize="12"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ui:DataGridTemplateColumn.CellTemplate>
+                            </ui:DataGridTemplateColumn>
+
+                            <ui:DataGridTemplateColumn Header="Aksi" Width="Auto">
+                                <ui:DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="8">
+                                            <Button Command="{Binding Data.EditIngredientCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}"
+                                                    Padding="6" Background="Transparent" ToolTipService.ToolTip="Edit">
+                                                <SymbolIcon Symbol="Edit" Foreground="{StaticResource PrimaryAccentBrush}"/>
+                                            </Button>
+                                            <Button Command="{Binding Data.DeleteIngredientCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}"
+                                                    Padding="6" Background="Transparent" ToolTipService.ToolTip="Hapus">
+                                                <SymbolIcon Symbol="Delete" Foreground="Red"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ui:DataGridTemplateColumn.CellTemplate>
+                            </ui:DataGridTemplateColumn>
+                        </ui:DataGrid.Columns>
+                    </ui:DataGrid>
+                </Grid>
+            </Grid>
+        </Grid>
     </Grid>
 </Page>

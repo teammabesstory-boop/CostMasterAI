@@ -1,49 +1,66 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CostMasterAI.Helpers;
 using CostMasterAI.Models;
 using CostMasterAI.Services;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
+using Windows.UI.ViewManagement;
 
 namespace CostMasterAI.ViewModels
 {
-    // --- UPGRADE: IngredientTab jadi ObservableObject ---
-    public partial class IngredientTab : ObservableObject
-    {
-        [ObservableProperty] private string _header;
-        [ObservableProperty] private string _icon;
-        [ObservableProperty] private ObservableCollection<Ingredient> _ingredients;
-        [ObservableProperty] private bool _isClosable;
-
-        // Link ke Database (Null kalau tab "Draft" atau "Semua Bahan")
-        public int? RecipeId { get; set; }
-
-        // State Edit Mode
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(IsNotEditing))]
-        private bool _isEditing;
-
-        // Helper buat UI (Kebalikan dari IsEditing)
-        public bool IsNotEditing => !IsEditing;
-    }
-
     public partial class IngredientsViewModel : ObservableObject
     {
         private readonly AppDbContext _dbContext;
 
-        public ObservableCollection<IngredientTab> Tabs { get; } = new();
+        // --- DATA COLLECTIONS ---
+        private List<Ingredient> _allIngredients = new(); // Cache untuk pencarian cepat
+        public ObservableCollection<Ingredient> Ingredients { get; } = new();
+        public List<string> UnitOptions => UnitHelper.CommonUnits;
 
-        // Property Form (Global)
-        [ObservableProperty] private string _newName = string.Empty;
-        [ObservableProperty] private string _newPrice = string.Empty;
-        [ObservableProperty] private string _newQty = string.Empty;
-        [ObservableProperty] private string _newUnit = "Gram";
-        [ObservableProperty] private string _newYield = "100";
-        [ObservableProperty] private int _editingId = 0;
-        [ObservableProperty] private string _buttonText = "Simpan Baru";
+        // --- STATE & SELECTION ---
+        [ObservableProperty] private Ingredient? _selectedIngredient;
+        [ObservableProperty] private bool _isEditing;
+        [ObservableProperty] private string _searchText = "";
+
+        // --- FORM INPUTS ---
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CalculatedCostPerUnit))]
+        private string _inputName = "";
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CalculatedCostPerUnit))]
+        private string _inputPrice = "";
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CalculatedCostPerUnit))]
+        private string _inputQty = "";
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CalculatedCostPerUnit))]
+        private string _inputUnit = "Gram";
+
+        [ObservableProperty]
+        private string _inputYield = "100";
+
+        // --- COMPUTED PROPERTY (Real-time Feedback) ---
+        // Menghitung harga per unit dasar secara otomatis saat user mengetik
+        public string CalculatedCostPerUnit
+        {
+            get
+            {
+                if (decimal.TryParse(InputPrice, out var p) && double.TryParse(InputQty, out var q) && q > 0)
+                {
+                    decimal cost = p / (decimal)q;
+                    return $"Rp {cost:N2} / {InputUnit}";
+                }
+                return "Rp 0";
+            }
+        }
 
         public IngredientsViewModel(AppDbContext dbContext)
         {
@@ -55,168 +72,151 @@ namespace CostMasterAI.ViewModels
         {
             try
             {
-                Tabs.Clear();
-
-                // 1. TAB UTAMA
-                var allIngredients = await _dbContext.Ingredients.ToListAsync();
-                Tabs.Add(new IngredientTab
-                {
-                    Header = "📦 Semua Bahan",
-                    Icon = "Home",
-                    IsClosable = false,
-                    Ingredients = new ObservableCollection<Ingredient>(allIngredients)
-                });
-
-                // 2. TAB RESEP
-                var recipes = await _dbContext.Recipes
-                    .Include(r => r.Items)
-                    .ThenInclude(i => i.Ingredient)
+                // Load semua bahan, urutkan A-Z
+                var data = await _dbContext.Ingredients
+                    .AsNoTracking()
+                    .OrderBy(i => i.Name)
                     .ToListAsync();
 
-                foreach (var recipe in recipes)
-                {
-                    var recipeIngredients = recipe.Items
-                        .Select(i => i.Ingredient)
-                        .Where(i => i != null)
-                        .Distinct()
-                        .ToList();
-
-                    if (recipeIngredients.Any())
-                    {
-                        Tabs.Add(new IngredientTab
-                        {
-                            Header = $"📜 {recipe.Name}",
-                            Icon = "Document",
-                            IsClosable = true,
-                            Ingredients = new ObservableCollection<Ingredient>(recipeIngredients),
-                            RecipeId = recipe.Id // Simpan ID Resep
-                        });
-                    }
-                }
+                _allIngredients = data;
+                PerformSearch(); // Populate ObservableCollection
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error Loading Tabs: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error LoadData: {ex.Message}");
             }
         }
 
-        // --- COMMANDS HEADER EDITING ---
-
-        [RelayCommand]
-        public void StartEditTab(IngredientTab tab)
+        // --- SEARCH LOGIC ---
+        partial void OnSearchTextChanged(string value)
         {
-            if (tab != null) tab.IsEditing = true;
+            PerformSearch();
         }
 
-        [RelayCommand]
-        public async Task SaveTabHeader(IngredientTab tab)
+        private void PerformSearch()
         {
-            if (tab == null) return;
+            Ingredients.Clear();
+            var query = _allIngredients.AsEnumerable();
 
-            tab.IsEditing = false; // Keluar mode edit
-
-            // Kalau ini Tab Resep, update nama resep di Database juga
-            if (tab.RecipeId.HasValue)
+            if (!string.IsNullOrWhiteSpace(SearchText))
             {
-                var recipe = await _dbContext.Recipes.FindAsync(tab.RecipeId.Value);
-                if (recipe != null)
-                {
-                    // Hapus emoji "📜 " dari header kalau ada, biar bersih di DB
-                    var cleanName = tab.Header.Replace("📜 ", "").Trim();
-                    recipe.Name = cleanName;
-
-                    _dbContext.Recipes.Update(recipe);
-                    await _dbContext.SaveChangesAsync();
-                }
+                query = query.Where(i => i.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
             }
+
+            foreach (var item in query) Ingredients.Add(item);
         }
 
-        // --- COMMANDS LAIN (Tetap Sama) ---
+        // --- CRUD COMMANDS ---
 
         [RelayCommand]
-        public void AddNewTab()
+        private async Task SaveIngredientAsync()
         {
-            Tabs.Add(new IngredientTab
+            // Validasi Input
+            if (string.IsNullOrWhiteSpace(InputName)) return;
+            if (!decimal.TryParse(InputPrice, out var price)) return;
+            if (!double.TryParse(InputQty, out var qty) || qty <= 0) return;
+            if (!double.TryParse(InputYield, out var yield)) yield = 100;
+
+            try
             {
-                Header = "📝 Draft Baru",
-                Icon = "Edit",
-                IsClosable = true,
-                Ingredients = new ObservableCollection<Ingredient>()
-            });
-        }
-
-        [RelayCommand]
-        public void CloseTab(IngredientTab tabToClose)
-        {
-            if (Tabs.Contains(tabToClose)) Tabs.Remove(tabToClose);
-        }
-
-        [RelayCommand]
-        private void PrepareEdit(Ingredient item)
-        {
-            NewName = item.Name;
-            NewPrice = item.PricePerPackage.ToString();
-            NewQty = item.QuantityPerPackage.ToString();
-            NewUnit = item.Unit;
-            NewYield = item.YieldPercent.ToString();
-            EditingId = item.Id;
-            ButtonText = "Update Data";
-        }
-
-        [RelayCommand]
-        private void CancelEdit()
-        {
-            ClearForm();
-        }
-
-        [RelayCommand]
-        private async Task SaveOrUpdateIngredientAsync()
-        {
-            if (string.IsNullOrWhiteSpace(NewName) || string.IsNullOrWhiteSpace(NewPrice)) return;
-            if (decimal.TryParse(NewPrice, out var price) && double.TryParse(NewQty, out var qty) && double.TryParse(NewYield, out var yield))
-            {
-                if (yield <= 0) yield = 100;
-                try
+                if (IsEditing && SelectedIngredient != null)
                 {
-                    if (EditingId == 0)
+                    // UPDATE EXISTING
+                    var existing = await _dbContext.Ingredients.FindAsync(SelectedIngredient.Id);
+                    if (existing != null)
                     {
-                        var newItem = new Ingredient { Name = NewName, PricePerPackage = price, QuantityPerPackage = qty, Unit = NewUnit, YieldPercent = yield, Category = "General" };
-                        _dbContext.Ingredients.Add(newItem);
+                        existing.Name = InputName;
+                        existing.PricePerPackage = price;
+                        existing.QuantityPerPackage = qty;
+                        existing.Unit = InputUnit;
+                        existing.YieldPercent = yield;
+                        // Kategori bisa ditambahkan nanti jika perlu
+
+                        _dbContext.Ingredients.Update(existing);
                         await _dbContext.SaveChangesAsync();
                     }
-                    else
-                    {
-                        var itemToUpdate = await _dbContext.Ingredients.FindAsync(EditingId);
-                        if (itemToUpdate != null)
-                        {
-                            itemToUpdate.Name = NewName; itemToUpdate.PricePerPackage = price; itemToUpdate.QuantityPerPackage = qty; itemToUpdate.Unit = NewUnit; itemToUpdate.YieldPercent = yield;
-                            _dbContext.Ingredients.Update(itemToUpdate);
-                            await _dbContext.SaveChangesAsync();
-                        }
-                    }
-                    ClearForm();
-                    LoadDataAsync();
                 }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"❌ Error Saving: {ex.Message}"); }
-            }
-        }
+                else
+                {
+                    // CREATE NEW
+                    var newIng = new Ingredient
+                    {
+                        Name = InputName,
+                        PricePerPackage = price,
+                        QuantityPerPackage = qty,
+                        Unit = InputUnit,
+                        YieldPercent = yield,
+                        Category = "General"
+                    };
+                    _dbContext.Ingredients.Add(newIng);
+                    await _dbContext.SaveChangesAsync();
+                }
 
-        private void ClearForm()
-        {
-            NewName = ""; NewPrice = ""; NewQty = ""; NewYield = "100"; EditingId = 0; ButtonText = "Simpan Baru";
+                ResetInput(); // Bersihkan form
+                LoadDataAsync(); // Refresh tabel
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error Save: {ex.Message}");
+            }
         }
 
         [RelayCommand]
         private async Task DeleteIngredientAsync(Ingredient? item)
         {
             if (item == null) return;
+
             try
             {
+                // Cek Validasi: Jangan hapus jika sedang dipakai di Resep
+                bool isUsed = await _dbContext.RecipeItems.AnyAsync(ri => ri.IngredientId == item.Id);
+                if (isUsed)
+                {
+                    // Idealnya tampilkan dialog, tapi untuk sekarang kita skip delete
+                    System.Diagnostics.Debug.WriteLine("Gagal Hapus: Bahan sedang digunakan di resep lain.");
+                    return;
+                }
+
                 _dbContext.Ingredients.Remove(item);
                 await _dbContext.SaveChangesAsync();
                 LoadDataAsync();
+
+                // Jika yang dihapus sedang diedit, reset form
+                if (SelectedIngredient?.Id == item.Id) ResetInput();
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"❌ Error Deleting: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error Delete: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        private void EditIngredient(Ingredient? item)
+        {
+            if (item == null) return;
+
+            SelectedIngredient = item;
+
+            // Populate Form
+            InputName = item.Name;
+            InputPrice = item.PricePerPackage.ToString("0.##"); // Format bersih tanpa .00
+            InputQty = item.QuantityPerPackage.ToString("0.##");
+            InputUnit = item.Unit;
+            InputYield = item.YieldPercent.ToString("0.##");
+
+            IsEditing = true;
+        }
+
+        [RelayCommand]
+        private void ResetInput()
+        {
+            SelectedIngredient = null;
+            InputName = "";
+            InputPrice = "";
+            InputQty = "";
+            InputUnit = "Gram"; // Default Unit
+            InputYield = "100";
+            IsEditing = false;
         }
     }
 }

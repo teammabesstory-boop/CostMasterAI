@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media; // <--- INI OBATNYA BUAT MICABACKDROP
 using System;
+using CostMasterAI.Helpers; // Pastikan namespace ini ada jika butuh helper
 
 namespace CostMasterAI.Views
 {
@@ -10,15 +10,20 @@ namespace CostMasterAI.Views
         public MainWindow()
         {
             this.InitializeComponent();
-            this.Title = "CostMaster AI - Final Release";
 
-            // Sekarang dia udah kenal MicaBackdrop
-            SystemBackdrop = new MicaBackdrop();
+            // 1. EXTEND CONTENT INTO TITLE BAR (MODERN LOOK)
+            ExtendsContentIntoTitleBar = true;
+            SetTitleBar(AppTitleBar); // Kita set Grid 'AppTitleBar' sebagai area drag
+
+            // Set Judul Window
+            this.Title = "CostMaster AI";
         }
 
         private void NavView_Loaded(object sender, RoutedEventArgs e)
         {
+            // Default page saat pertama buka: Dashboard
             NavView.SelectedItem = NavView.MenuItems[0];
+            Navigate("dashboard");
         }
 
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -27,27 +32,43 @@ namespace CostMasterAI.Views
             {
                 ContentFrame.Navigate(typeof(SettingsPage));
             }
-            else if (args.SelectedItem is NavigationViewItem selectedItem)
+            else
             {
-                string tag = selectedItem.Tag.ToString();
-                switch (tag)
+                var selectedItem = args.SelectedItem as NavigationViewItem;
+                if (selectedItem != null)
                 {
-                    case "home":
-                        ContentFrame.Navigate(typeof(DashboardPage));
-                        break;
-                    case "ingredients":
-                        ContentFrame.Navigate(typeof(IngredientsPage));
-                        break;
-                    case "recipes":
-                        ContentFrame.Navigate(typeof(RecipesPage));
-                        break;
-                    case "settings": // Handle tag manual juga biar aman
-                        ContentFrame.Navigate(typeof(SettingsPage));
-                        break;
-                    case "shopping":
-                        ContentFrame.Navigate(typeof(ShoppingListPage));
-                        break;
+                    string pageTag = selectedItem.Tag.ToString();
+                    Navigate(pageTag);
                 }
+            }
+        }
+
+        private void Navigate(string navItemTag)
+        {
+            Type pageType = null;
+
+            switch (navItemTag)
+            {
+                case "dashboard":
+                    pageType = typeof(DashboardPage);
+                    break;
+                case "recipes":
+                    pageType = typeof(RecipesPage);
+                    break;
+                case "ingredients":
+                    pageType = typeof(IngredientsPage);
+                    break;
+                case "shopping":
+                    pageType = typeof(ShoppingListPage);
+                    break;
+                default:
+                    return; // Do nothing if tag unknown
+            }
+
+            // Cek biar gak reload page yang sama
+            if (ContentFrame.CurrentSourcePageType != pageType)
+            {
+                ContentFrame.Navigate(pageType);
             }
         }
     }

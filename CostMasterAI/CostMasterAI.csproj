@@ -45,11 +45,16 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="CommunityToolkit.WinUI.Animations" Version="8.2.251219" />
+    <PackageReference Include="CommunityToolkit.WinUI.Behaviors" Version="8.2.251219" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
+    <PackageReference Include="CommunityToolkit.WinUI.Converters" Version="8.2.251219" />
     <PackageReference Include="CommunityToolkit.WinUI.UI.Controls.DataGrid" Version="7.1.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1-RTM" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.0-experimental4" />
+    <PackageReference Include="WinUIEx" Version="2.9.0" />
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\ShoppingListPage.xaml">

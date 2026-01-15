@@ -6,19 +6,85 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <NavigationView x:Name="NavView" 
-                    Loaded="NavView_Loaded" 
-                    SelectionChanged="NavView_SelectionChanged"
-                    PaneDisplayMode="Auto">
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <NavigationView.MenuItems>
-            <NavigationViewItem Icon="Home" Content="Dashboard" Tag="home" />
-            <NavigationViewItem Icon="Library" Content="Ingredients (Gudang)" Tag="ingredients" />
-            <NavigationViewItem Icon="OutlineStar" Content="Recipes (Menu)" Tag="recipes" />
-            <NavigationViewItem Icon="Shop" Content="Shopping List" Tag="shopping" />
-        </NavigationView.MenuItems>
+        <Grid x:Name="AppTitleBar" Height="40" Grid.Row="0" Canvas.ZIndex="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-        <Frame x:Name="ContentFrame"/>
+            <StackPanel Orientation="Horizontal" Spacing="12" Padding="16,0,0,0" VerticalAlignment="Center">
+                <Image Source="/Assets/Square44x44Logo.targetsize-24_altform-unplated.png" Width="20" Height="20"/>
+                <TextBlock Text="CostMaster AI" FontSize="12" FontWeight="SemiBold" Opacity="0.8" VerticalAlignment="Center"/>
+                <Border Background="#20000000" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                    <TextBlock Text="Enterprise Edition" FontSize="10" Opacity="0.5"/>
+                </Border>
+            </StackPanel>
+        </Grid>
 
-    </NavigationView>
+        <NavigationView x:Name="NavView"
+                        Grid.Row="0" Grid.RowSpan="2"
+                        PaneDisplayMode="Left"
+                        IsBackButtonVisible="Collapsed"
+                        IsSettingsVisible="True"
+                        SelectionChanged="NavView_SelectionChanged"
+                        Loaded="NavView_Loaded"
+                        OpenPaneLength="260"
+                        Margin="0,40,0,0">
+
+            <NavigationView.MenuItems>
+                <NavigationViewItem Tag="dashboard" Content="Dashboard" Margin="0,4,0,0">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE80F;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
+                <NavigationViewItemSeparator/>
+
+                <NavigationViewItem Tag="recipes" Content="Resep &amp; HPP">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE82D;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
+                <NavigationViewItem Tag="ingredients" Content="Database Bahan">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE8F1;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
+                <NavigationViewItem Tag="shopping" Content="Belanja (Shopping List)">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE7BF;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem Content="User Profile" Tag="profile" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE77B;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.FooterMenuItems>
+
+            <Frame x:Name="ContentFrame" Background="{StaticResource AppBackgroundBrush}">
+                <Frame.ContentTransitions>
+                    <TransitionCollection>
+                        <NavigationThemeTransition>
+                            <NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                                <DrillInNavigationTransitionInfo />
+                            </NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                        </NavigationThemeTransition>
+                    </TransitionCollection>
+                </Frame.ContentTransitions>
+            </Frame>
+
+        </NavigationView>
+    </Grid>
 </Window>
