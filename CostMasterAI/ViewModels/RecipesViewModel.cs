@@ -543,31 +543,56 @@ namespace CostMasterAI.ViewModels
         {
             if (SelectedRecipe == null || TargetFlourQty <= 0) return;
 
+            // 1. Coba Cari Bahan dengan nama "Tepung" atau "Terigu" di Bahan Utama
             var flourItem = MainIngredients.FirstOrDefault(i =>
                 i.Ingredient.Name.Contains("Tepung", StringComparison.OrdinalIgnoreCase) ||
-                i.Ingredient.Name.Contains("Terigu", StringComparison.OrdinalIgnoreCase));
+                i.Ingredient.Name.Contains("Terigu", StringComparison.OrdinalIgnoreCase) ||
+                i.Ingredient.Name.Contains("Flour", StringComparison.OrdinalIgnoreCase));
 
+            // 2. FALLBACK: Jika tidak ada yang namanya "Tepung", ambil bahan dengan Qty TERBESAR di kategori utama
+            // (Asumsi: Dalam baking, tepung selalu porsinya paling besar)
+            if (flourItem == null && MainIngredients.Any())
+            {
+                flourItem = MainIngredients.OrderByDescending(i => i.UsageQty).First();
+            }
+
+            // Jika masih tidak ketemu juga, batalkan
             if (flourItem == null || flourItem.UsageQty <= 0) return;
 
+            // 3. Hitung Ratio Kenaikan (Misal Lama 1000g -> Baru 1500g, ratio = 1.5)
             double ratio = TargetFlourQty / flourItem.UsageQty;
 
-            if (ratio == 1) return;
+            // Cegah kalkulasi jika tidak ada perubahan atau ratio aneh
+            if (ratio == 1 || ratio <= 0) return;
 
+            // 4. Kalikan semua item di Bahan Utama (Kecuali yang Per Pcs)
             foreach (var item in MainIngredients)
             {
-                if (!item.IsPerPiece && !item.IsUnitBased)
+                // Hanya scale yang SATUANNYA BERAT/VOLUME.
+                // Item unit based (misal: 2 butir telur) opsional mau di scale atau tidak. 
+                // Di sini kita scale juga kecuali dia ditandai UnitBased eksplisit di UI (fitur masa depan).
+
+                if (!item.IsPerPiece)
                 {
                     item.UsageQty = item.UsageQty * ratio;
                 }
             }
 
-            SelectedRecipe.YieldQty = (int)(SelectedRecipe.YieldQty * ratio);
+            // 5. Update Yield (Otomatis naik karena adonan naik)
+            // Asumsi: Yield berbanding lurus dengan total adonan
+            SelectedRecipe.YieldQty = (int)Math.Round(SelectedRecipe.YieldQty * ratio);
+            if (SelectedRecipe.YieldQty < 1) SelectedRecipe.YieldQty = 1;
 
+            // 6. Simpan ke Database
             _dbContext.Recipes.Update(SelectedRecipe);
             await _dbContext.SaveChangesAsync();
 
+            // 7. Refresh UI & Total Weight
             await SyncSubRecipeToIngredients(SelectedRecipe);
             await ReloadSelectedRecipe();
+
+            // 8. Update Target Simulator scaling juga biar sinkron
+            TargetScalingQty = SelectedRecipe.YieldQty;
         }
 
         [RelayCommand]
@@ -844,6 +869,41 @@ namespace CostMasterAI.ViewModels
             finally
             {
                 IsGeneratingImagePrompt = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task DeleteRecipeAsync()
+        {
+            if (SelectedRecipe == null) return;
+
+            try
+            {
+                // 1. Hapus dari Database
+                _dbContext.Recipes.Remove(SelectedRecipe);
+
+                // Hapus juga overhead/items terkait jika cascade delete belum otomatis (opsional, EF Core biasanya handle ini)
+                var relatedItems = _dbContext.RecipeItems.Where(ri => ri.RecipeId == SelectedRecipe.Id);
+                _dbContext.RecipeItems.RemoveRange(relatedItems);
+
+                var relatedOverheads = _dbContext.RecipeOverheads.Where(ro => ro.RecipeId == SelectedRecipe.Id);
+                _dbContext.RecipeOverheads.RemoveRange(relatedOverheads);
+
+                await _dbContext.SaveChangesAsync();
+
+                // 2. Hapus dari List UI
+                Recipes.Remove(SelectedRecipe);
+
+                // 3. Reset Pilihan (Kosongkan UI)
+                SelectedRecipe = null;
+
+                // Reset input dummy agar bersih
+                TargetScalingQty = 0;
+            }
+            catch (Exception ex)
+            {
+                // Jika ingin handle error (misal log ke console)
+                System.Diagnostics.Debug.WriteLine($"Gagal menghapus resep: {ex.Message}");
             }
         }
 

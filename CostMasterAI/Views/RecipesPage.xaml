@@ -14,13 +14,23 @@
     <Page.Resources>
         <helpers:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
 
-        <FontFamily x:Key="AppFont">/Assets/Helvetica.ttf#Helvetica</FontFamily>
-        <FontFamily x:Key="AppFontBold">/Assets/Helvetica-Bold.ttf#Helvetica</FontFamily>
-        <FontFamily x:Key="AppFontLight">/Assets/helvetica-light-587ebe5a59211.ttf#Helvetica Light</FontFamily>
+        <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
+        <FontFamily x:Key="AppFont">/Assets/Satoshi-Regular.otf#Satoshi</FontFamily>
+        <FontFamily x:Key="AppFontBold">/Assets/Satoshi-Bold.otf#Satoshi</FontFamily>
+        <FontFamily x:Key="AppFontMedium">/Assets/Satoshi-Medium.otf#Satoshi</FontFamily>
+        <FontFamily x:Key="AppFontLight">/Assets/Satoshi-Light.otf#Satoshi</FontFamily>
+        <FontFamily x:Key="AppFontBlack">/Assets/Satoshi-Black.otf#Satoshi</FontFamily>
 
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
             <Setter Property="Foreground" Value="#1F2937"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="FontFamily" Value="{StaticResource AppFontMedium}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="CornerRadius" Value="6"/>
         </Style>
 
         <Style x:Key="RecipeCardStyle" TargetType="Grid" BasedOn="{StaticResource ModernCardStyle}">
@@ -28,14 +38,14 @@
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E5E7EB"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="CornerRadius" Value="12"/>
         </Style>
 
         <Style x:Key="CostBoxStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="#FAFAFA"/>
             <Setter Property="BorderBrush" Value="#E5E7EB"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="16"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
@@ -43,19 +53,21 @@
         <Style x:Key="IngredientGroupHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontFamily" Value="{StaticResource AppFontBold}"/>
-            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Foreground" Value="#6B7280"/>
             <Setter Property="Margin" Value="0,24,0,12"/>
             <Setter Property="CharacterSpacing" Value="100"/>
-            <Setter Property="Opacity" Value="0.8"/>
+            <Setter Property="Opacity" Value="0.9"/>
         </Style>
 
         <Style x:Key="BigNumberStyle" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{StaticResource AppFontBold}"/>
+            <Setter Property="FontFamily" Value="{StaticResource AppFontBlack}"/>
             <Setter Property="Foreground" Value="#111827"/>
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="CharacterSpacing" Value="-20"/>
         </Style>
     </Page.Resources>
 
-    <Grid Background="#F9FAFB">
+    <Grid Background="#F9FAFB" UseLayoutRounding="True">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="360"/>
             <ColumnDefinition Width="*"/>
@@ -69,17 +81,17 @@
             </Grid.RowDefinitions>
 
             <StackPanel Spacing="16" Padding="24,32,24,16">
-                <TextBlock Text="Database Donat" FontFamily="{StaticResource AppFontBold}" FontSize="24"/>
+                <TextBlock Text="Database Donat" FontFamily="{StaticResource AppFontBlack}" FontSize="24" CharacterSpacing="-10"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox PlaceholderText="Cari varian..." Text="{Binding NewRecipeName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                             CornerRadius="6" BorderThickness="1" BorderBrush="#D1D5DB" Padding="10,8"/>
+                             BorderThickness="1" BorderBrush="#E5E7EB" Padding="12,10" FontFamily="{StaticResource AppFont}"/>
                     <Button Grid.Column="1" Command="{Binding CreateRecipeCommand}" 
                             Style="{StaticResource PrimaryButtonStyle}" Margin="8,0,0,0" ToolTipService.ToolTip="Buat Resep Baru">
-                        <SymbolIcon Symbol="Add"/>
+                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xEA13;" FontSize="18"/>
                     </Button>
                 </Grid>
             </StackPanel>
@@ -87,41 +99,41 @@
             <ListView Grid.Row="1" ItemsSource="{Binding Recipes}" SelectedItem="{Binding SelectedRecipe, Mode=TwoWay}" Padding="12,0" SelectionMode="Single">
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
-                        <Setter Property="CornerRadius" Value="6"/>
-                        <Setter Property="Margin" Value="0,2"/>
+                        <Setter Property="CornerRadius" Value="8"/>
+                        <Setter Property="Margin" Value="0,4"/>
                         <Setter Property="Padding" Value="4"/>
                     </Style>
                 </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <Grid Padding="12,14">
+                        <Grid Padding="12,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="{Binding Name}" FontFamily="{StaticResource AppFontBold}" FontSize="14"/>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="{Binding Name}" FontFamily="{StaticResource AppFontBold}" FontSize="15" Foreground="#111827"/>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <Border Background="#F3F4F6" CornerRadius="4" Padding="6,2" Visibility="{Binding IsSubRecipe, Converter={StaticResource BoolVisConv}}">
-                                        <TextBlock Text="ADONAN DASAR" FontSize="9" Foreground="#4B5563" FontFamily="{StaticResource AppFontBold}"/>
+                                        <TextBlock Text="ADONAN DASAR" FontSize="10" Foreground="#4B5563" FontFamily="{StaticResource AppFontBold}" CharacterSpacing="50"/>
                                     </Border>
                                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                        <TextBlock Text="Output:" FontSize="11" Foreground="#6B7280"/>
-                                        <TextBlock Text="{Binding YieldQty}" FontSize="11" Foreground="#6B7280"/>
+                                        <TextBlock Text="Output:" FontSize="12" FontFamily="{StaticResource AppFont}" Foreground="#6B7280"/>
+                                        <TextBlock Text="{Binding YieldQty}" FontSize="12" FontFamily="{StaticResource AppFontMedium}" Foreground="#4B5563"/>
                                     </StackPanel>
                                 </StackPanel>
                             </StackPanel>
                             <TextBlock Grid.Column="1" Text="{Binding TotalBatchCost, Converter={StaticResource MoneyConv}}" 
-                                       VerticalAlignment="Center" FontFamily="{StaticResource AppFont}" FontSize="13" Foreground="#374151"/>
+                                       VerticalAlignment="Center" FontFamily="{StaticResource AppFontMedium}" FontSize="14" Foreground="#374151"/>
                         </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
 
-            <Border Grid.Row="2" Padding="16" Background="#FAFAFA" BorderThickness="0,1,0,0" BorderBrush="#E5E7EB">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
-                    <TextBlock Text="{Binding Recipes.Count}" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280"/>
-                    <TextBlock Text="Varian Donat" FontSize="12" Foreground="#6B7280"/>
+            <Border Grid.Row="2" Padding="20" Background="#FAFAFA" BorderThickness="0,1,0,0" BorderBrush="#E5E7EB">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
+                    <TextBlock Text="{Binding Recipes.Count}" FontSize="13" FontFamily="{StaticResource AppFontBold}" Foreground="#4B5563"/>
+                    <TextBlock Text="Varian Resep" FontSize="13" FontFamily="{StaticResource AppFontMedium}" Foreground="#6B7280"/>
                 </StackPanel>
             </Border>
         </Grid>
@@ -138,19 +150,19 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Spacing="6">
+                <StackPanel Spacing="8">
                     <TextBox Text="{Binding SelectedRecipe.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                             FontSize="26" FontFamily="{StaticResource AppFontBold}" BorderThickness="0" Background="Transparent" Padding="0" PlaceholderText="Nama Varian"/>
+                             FontSize="36" FontFamily="{StaticResource AppFontBlack}" BorderThickness="0" Background="Transparent" Padding="0" PlaceholderText="NAMA VARIAN"/>
                     <TextBox Text="{Binding SelectedRecipe.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                             PlaceholderText="Tambahkan deskripsi resep..." FontFamily="{StaticResource AppFontLight}" Foreground="#6B7280" BorderThickness="0" Background="Transparent" Padding="0"/>
+                             PlaceholderText="Tambahkan deskripsi resep..." FontFamily="{StaticResource AppFontLight}" FontSize="16" Foreground="#4B5563" BorderThickness="0" Background="Transparent" Padding="0"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Top">
-                    <Border Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="4">
+                    <Border Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="6">
                         <StackPanel Orientation="Horizontal" Spacing="0">
-                            <TextBox PlaceholderText="Target Pcs" Text="{Binding TargetScalingQty, Mode=TwoWay}" Width="80" 
+                            <TextBox PlaceholderText="Target" Text="{Binding TargetScalingQty, Mode=TwoWay}" Width="80" FontSize="15" FontFamily="{StaticResource AppFontMedium}"
                                      BorderThickness="0" Background="Transparent" VerticalAlignment="Center" HorizontalContentAlignment="Center"/>
-                            <Button Content="Scale" Command="{Binding ScaleRecipeCommand}" Background="#F3F4F6" BorderThickness="0" Height="30" FontSize="12" CornerRadius="4"/>
+                            <Button Content="Scale" Command="{Binding ScaleRecipeCommand}" FontFamily="{StaticResource AppFontBold}" Background="#F3F4F6" BorderThickness="0" Height="34" FontSize="13" CornerRadius="6"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -164,11 +176,12 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <Grid Margin="0,0,0,16">
-                            <TextBlock Text="SPESIFIKASI" Style="{StaticResource IngredientGroupHeaderStyle}" Margin="0"/>
+                        <Grid Margin="0,0,0,20">
+                            <TextBlock Text="SPESIFIKASI UMUM" Style="{StaticResource IngredientGroupHeaderStyle}" Margin="0"/>
                             <ToggleSwitch HorizontalAlignment="Right" OnContent="Adonan Dasar" OffContent="Produk Jadi" 
-                                          IsOn="{Binding SelectedRecipe.IsSubRecipe, Mode=TwoWay}"/>
+                                          IsOn="{Binding SelectedRecipe.IsSubRecipe, Mode=TwoWay}" FontFamily="{StaticResource AppFontMedium}" FontSize="13"/>
                         </Grid>
+
                         <Grid Grid.Row="1" ColumnSpacing="24">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -176,30 +189,41 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" Header="Versi" Text="{Binding SelectedRecipe.Version, Mode=TwoWay}" CornerRadius="4"/>
-                            <TextBox Grid.Column="1" Header="Shelf Life (Hari)" Text="{Binding SelectedRecipe.ShelfLife, Mode=TwoWay}" CornerRadius="4"/>
-                            <TextBox Grid.Column="2" Header="Prep (Menit)" Text="{Binding SelectedRecipe.PrepMinutes, Mode=TwoWay}" CornerRadius="4"/>
 
-                            <Button Grid.Column="3" Content="Sync Data" Command="{Binding UpdateRecipeDetailsCommand}" VerticalAlignment="Bottom" Style="{StaticResource PrimaryButtonStyle}"/>
+                            <TextBox Grid.Column="0" Header="Versi" Text="{Binding SelectedRecipe.Version, Mode=TwoWay}" FontFamily="{StaticResource AppFont}"/>
+                            <TextBox Grid.Column="1" Header="Shelf Life (Hari)" Text="{Binding SelectedRecipe.ShelfLife, Mode=TwoWay}" FontFamily="{StaticResource AppFont}"/>
+                            <TextBox Grid.Column="2" Header="Prep (Menit)" Text="{Binding SelectedRecipe.PrepMinutes, Mode=TwoWay}" FontFamily="{StaticResource AppFont}"/>
+
+                            <Button Grid.Column="3" Content="Sync Data" Command="{Binding UpdateRecipeDetailsCommand}" FontFamily="{StaticResource AppFontBold}" VerticalAlignment="Bottom" Style="{StaticResource PrimaryButtonStyle}"/>
 
                             <Button Grid.Column="4" Command="{Binding SaveAsNewRecipeCommand}" VerticalAlignment="Bottom" Margin="8,0,0,0" ToolTipService.ToolTip="Simpan Salinan Baru">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <SymbolIcon Symbol="Copy"/>
-                                    <TextBlock Text="Save Copy"/>
+                                    <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xECD3;" FontSize="16"/>
+                                    <TextBlock Text="Save Copy" FontFamily="{StaticResource AppFontBold}"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="5" Command="{Binding DeleteRecipeCommand}" VerticalAlignment="Bottom" Margin="8,0,0,0"
+                                    Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" 
+                                    ToolTipService.ToolTip="Hapus Resep Ini">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xEC28;" FontSize="16" Foreground="#DC2626"/>
+                                    <TextBlock Text="Delete" FontFamily="{StaticResource AppFontBold}" Foreground="#DC2626"/>
                                 </StackPanel>
                             </Button>
                         </Grid>
                     </Grid>
 
-                    <TabView IsAddTabButtonVisible="False" Background="Transparent">
+                    <TabView IsAddTabButtonVisible="False" Background="Transparent" FontFamily="{StaticResource AppFontMedium}">
 
                         <TabViewItem Header="Bahan Baku">
                             <TabViewItem.IconSource>
                                 <SymbolIconSource Symbol="List"/>
                             </TabViewItem.IconSource>
 
-                            <StackPanel Spacing="16" Padding="0,16,0,0">
+                            <StackPanel Spacing="16" Padding="0,20,0,0">
                                 <Grid Style="{StaticResource RecipeCardStyle}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
@@ -209,28 +233,28 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                                        <TextBox Header="Cooking Loss %" Text="{Binding SelectedRecipe.CookingLossPercent, Mode=TwoWay}" Width="100"/>
-                                        <TextBox Header="Target Berat (g)" Text="{Binding SelectedRecipe.TargetPortionSize, Mode=TwoWay}" Width="100"/>
-                                        <Button Content="Hitung Yield" Command="{Binding RecalculateYieldFromMassCommand}" VerticalAlignment="Bottom"/>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                                        <TextBox Header="Cooking Loss %" Text="{Binding SelectedRecipe.CookingLossPercent, Mode=TwoWay}" Width="110"/>
+                                        <TextBox Header="Target Berat (g)" Text="{Binding SelectedRecipe.TargetPortionSize, Mode=TwoWay}" Width="110"/>
+                                        <Button Content="Hitung Yield" Command="{Binding RecalculateYieldFromMassCommand}" FontFamily="{StaticResource AppFontBold}" VerticalAlignment="Bottom"/>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="24,0,0,0" VerticalAlignment="Bottom">
-                                        <Border Background="#EFF6FF" BorderBrush="#DBEAFE" BorderThickness="1" CornerRadius="4" Padding="8,4">
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="32,0,0,0" VerticalAlignment="Bottom">
+                                        <Border Background="#EFF6FF" BorderBrush="#DBEAFE" BorderThickness="1" CornerRadius="8" Padding="12,6">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="⚖️ Baker's Scale:" VerticalAlignment="Center" FontSize="12" Foreground="#1E40AF" FontWeight="Bold"/>
-                                                <TextBox PlaceholderText="Target Tepung" Text="{Binding TargetFlourQty, Mode=TwoWay}" Width="100" VerticalAlignment="Center" BorderThickness="0,0,0,1" Background="Transparent"/>
-                                                <TextBlock Text="g" VerticalAlignment="Center" Foreground="#1E40AF"/>
-                                                <Button Content="Resize" Command="{Binding ResizeBatchByFlourCommand}" FontSize="12" Padding="8,4" Height="30"/>
+                                                <TextBlock Text="Baker's Scale:" VerticalAlignment="Center" FontSize="13" Foreground="#1E40AF" FontFamily="{StaticResource AppFontBold}"/>
+                                                <TextBox PlaceholderText="Target Tepung" Text="{Binding TargetFlourQty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="100" VerticalAlignment="Center" BorderThickness="0,0,0,1" Background="Transparent" FontFamily="{StaticResource AppFontMedium}"/>
+                                                <TextBlock Text="g" VerticalAlignment="Center" Foreground="#1E40AF" FontFamily="{StaticResource AppFontBold}"/>
+                                                <Button Content="Resize" Command="{Binding ResizeBatchByFlourCommand}" FontSize="12" Padding="12,4" Height="32" FontFamily="{StaticResource AppFontBold}"/>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                        <TextBlock Text="OUTPUT BATCH" FontSize="10" FontFamily="{StaticResource AppFontBold}" Opacity="0.4" HorizontalAlignment="Right" CharacterSpacing="50"/>
-                                        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
-                                            <TextBlock Text="{Binding SelectedRecipe.YieldQty}" FontSize="24" Style="{StaticResource BigNumberStyle}"/>
-                                            <TextBlock Text="Pcs" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,4" Foreground="#6B7280"/>
+                                        <TextBlock Text="OUTPUT BATCH" FontSize="11" FontFamily="{StaticResource AppFontBold}" Opacity="0.5" HorizontalAlignment="Right" CharacterSpacing="50"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                                            <TextBlock Text="{Binding SelectedRecipe.YieldQty}" FontSize="32" Style="{StaticResource BigNumberStyle}"/>
+                                            <TextBlock Text="Pcs" FontSize="18" VerticalAlignment="Bottom" Margin="0,0,0,6" Foreground="#6B7280" FontFamily="{StaticResource AppFontMedium}"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Grid>
@@ -246,31 +270,31 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <ComboBox Grid.Column="0" PlaceholderText="Pilih Bahan..." ItemsSource="{Binding AvailableIngredients}" SelectedItem="{Binding SelectedIngredientToAdd, Mode=TwoWay}" DisplayMemberPath="Name" HorizontalAlignment="Stretch"/>
-                                        <ComboBox Grid.Column="1" PlaceholderText="Kategori" ItemsSource="{Binding RecipeCategories}" SelectedItem="{Binding SelectedCategoryToAdd, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
-                                        <TextBox Grid.Column="2" PlaceholderText="Qty" Text="{Binding UsageQtyInput, Mode=TwoWay}"/>
-                                        <ComboBox Grid.Column="3" PlaceholderText="Unit" ItemsSource="{Binding UnitOptions}" SelectedItem="{Binding SelectedUsageUnit, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
+                                        <ComboBox Grid.Column="0" PlaceholderText="Pilih Bahan..." ItemsSource="{Binding AvailableIngredients}" SelectedItem="{Binding SelectedIngredientToAdd, Mode=TwoWay}" DisplayMemberPath="Name" HorizontalAlignment="Stretch" FontFamily="{StaticResource AppFont}"/>
+                                        <ComboBox Grid.Column="1" PlaceholderText="Kategori" ItemsSource="{Binding RecipeCategories}" SelectedItem="{Binding SelectedCategoryToAdd, Mode=TwoWay}" HorizontalAlignment="Stretch" FontFamily="{StaticResource AppFont}"/>
+                                        <TextBox Grid.Column="2" PlaceholderText="Qty" Text="{Binding UsageQtyInput, Mode=TwoWay}" FontFamily="{StaticResource AppFontMedium}"/>
+                                        <ComboBox Grid.Column="3" PlaceholderText="Unit" ItemsSource="{Binding UnitOptions}" SelectedItem="{Binding SelectedUsageUnit, Mode=TwoWay}" HorizontalAlignment="Stretch" FontFamily="{StaticResource AppFont}"/>
 
-                                        <CheckBox Grid.Column="4" Content="/Pcs" IsChecked="{Binding IsInputPerPiece, Mode=TwoWay}" 
+                                        <CheckBox Grid.Column="4" Content="/Pcs" IsChecked="{Binding IsInputPerPiece, Mode=TwoWay}" FontFamily="{StaticResource AppFontMedium}"
                                                   ToolTipService.ToolTip="Centang jika takaran ini untuk 1 pcs donat (Misal: Glaze 10g)"/>
 
-                                        <Button Grid.Column="5" Content="Tambah" Command="{Binding AddItemToRecipeCommand}" Style="{StaticResource PrimaryButtonStyle}"/>
+                                        <Button Grid.Column="5" Content="Tambah" Command="{Binding AddItemToRecipeCommand}" Style="{StaticResource PrimaryButtonStyle}" FontFamily="{StaticResource AppFontBold}"/>
                                     </Grid>
                                 </Grid>
 
                                 <Grid Style="{StaticResource RecipeCardStyle}">
                                     <StackPanel>
 
-                                        <Grid Margin="0,0,0,8">
+                                        <Grid Margin="0,0,0,12">
                                             <TextBlock Text="BAHAN UTAMA (ADONAN)" Style="{StaticResource IngredientGroupHeaderStyle}" Margin="0"/>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="4" VerticalAlignment="Center">
-                                                <TextBlock Text="Berat:" FontSize="11" Foreground="#6B7280"/>
-                                                <TextBlock FontSize="11" FontFamily="{StaticResource AppFontBold}">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6" VerticalAlignment="Center">
+                                                <TextBlock Text="Total Berat:" FontSize="13" Foreground="#6B7280" FontFamily="{StaticResource AppFont}"/>
+                                                <TextBlock FontSize="13" FontFamily="{StaticResource AppFontBold}" Foreground="#111827">
                                                     <Run Text="{Binding TotalMainDoughWeight}"/> <Run Text="g"/>
                                                 </TextBlock>
                                             </StackPanel>
                                         </Grid>
-                                        <ListView ItemsSource="{Binding MainIngredients}" SelectionMode="None" Margin="0,0,0,24">
+                                        <ListView ItemsSource="{Binding MainIngredients}" SelectionMode="None" Margin="0,0,0,32">
                                             <ListView.ItemTemplate>
                                                 <DataTemplate>
                                                     <Grid Padding="0,12" BorderBrush="#F3F4F6" BorderThickness="0,0,0,1">
@@ -280,26 +304,26 @@
                                                             <ColumnDefinition Width="100"/>
                                                             <ColumnDefinition Width="40"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Ingredient.Name}" Foreground="#111827"/>
+                                                        <TextBlock Text="{Binding Ingredient.Name}" Foreground="#111827" FontFamily="{StaticResource AppFontMedium}" FontSize="15"/>
 
                                                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <TextBlock Foreground="#6B7280" FontSize="13">
+                                                            <TextBlock Foreground="#6B7280" FontSize="14" FontFamily="{StaticResource AppFont}">
                                                                 <Run Text="{Binding UsageQty}"/> <Run Text="{Binding UsageUnit}"/>
                                                             </TextBlock>
-                                                            <Border Background="#DBEAFE" CornerRadius="3" Margin="6,0,0,0" Padding="4,0" Visibility="{Binding IsPerPiece, Converter={StaticResource BoolVisConv}}">
-                                                                <TextBlock Text="/pcs" FontSize="10" Foreground="#1E40AF" FontFamily="{StaticResource AppFontBold}"/>
+                                                            <Border Background="#DBEAFE" CornerRadius="4" Margin="8,0,0,0" Padding="6,2" Visibility="{Binding IsPerPiece, Converter={StaticResource BoolVisConv}}">
+                                                                <TextBlock Text="/pcs" FontSize="11" Foreground="#1E40AF" FontFamily="{StaticResource AppFontBold}"/>
                                                             </Border>
                                                         </StackPanel>
 
-                                                        <TextBlock Grid.Column="2" Text="{Binding CalculatedCost, Converter={StaticResource MoneyConv}}" Foreground="#374151" HorizontalAlignment="Right" FontFamily="{StaticResource AppFontBold}"/>
-                                                        <Button Grid.Column="3" Content="✕" Command="{Binding Data.RemoveItemFromRecipeCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="#EF4444" FontSize="10" Margin="8,0,0,0"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding CalculatedCost, Converter={StaticResource MoneyConv}}" Foreground="#374151" HorizontalAlignment="Right" FontFamily="{StaticResource AppFontBold}" FontSize="15"/>
+                                                        <Button Grid.Column="3" Content="✕" Command="{Binding Data.RemoveItemFromRecipeCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="#EF4444" FontSize="12" Margin="8,0,0,0"/>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ListView.ItemTemplate>
                                         </ListView>
 
                                         <TextBlock Text="BAHAN PENOLONG (TOPING/ISI)" Style="{StaticResource IngredientGroupHeaderStyle}"/>
-                                        <ListView ItemsSource="{Binding SupportIngredients}" SelectionMode="None" Margin="0,0,0,24">
+                                        <ListView ItemsSource="{Binding SupportIngredients}" SelectionMode="None" Margin="0,0,0,32">
                                             <ListView.ItemTemplate>
                                                 <DataTemplate>
                                                     <Grid Padding="0,12" BorderBrush="#F3F4F6" BorderThickness="0,0,0,1">
@@ -309,19 +333,19 @@
                                                             <ColumnDefinition Width="100"/>
                                                             <ColumnDefinition Width="40"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Ingredient.Name}" Foreground="#111827"/>
+                                                        <TextBlock Text="{Binding Ingredient.Name}" Foreground="#111827" FontFamily="{StaticResource AppFontMedium}" FontSize="15"/>
 
                                                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <TextBlock Foreground="#6B7280" FontSize="13">
+                                                            <TextBlock Foreground="#6B7280" FontSize="14" FontFamily="{StaticResource AppFont}">
                                                                 <Run Text="{Binding UsageQty}"/> <Run Text="{Binding UsageUnit}"/>
                                                             </TextBlock>
-                                                            <Border Background="#DBEAFE" CornerRadius="3" Margin="6,0,0,0" Padding="4,0" Visibility="{Binding IsPerPiece, Converter={StaticResource BoolVisConv}}">
-                                                                <TextBlock Text="/pcs" FontSize="10" Foreground="#1E40AF" FontFamily="{StaticResource AppFontBold}"/>
+                                                            <Border Background="#DBEAFE" CornerRadius="4" Margin="8,0,0,0" Padding="6,2" Visibility="{Binding IsPerPiece, Converter={StaticResource BoolVisConv}}">
+                                                                <TextBlock Text="/pcs" FontSize="11" Foreground="#1E40AF" FontFamily="{StaticResource AppFontBold}"/>
                                                             </Border>
                                                         </StackPanel>
 
-                                                        <TextBlock Grid.Column="2" Text="{Binding CalculatedCost, Converter={StaticResource MoneyConv}}" Foreground="#374151" HorizontalAlignment="Right" FontFamily="{StaticResource AppFontBold}"/>
-                                                        <Button Grid.Column="3" Content="✕" Command="{Binding Data.RemoveItemFromRecipeCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="#EF4444" FontSize="10" Margin="8,0,0,0"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding CalculatedCost, Converter={StaticResource MoneyConv}}" Foreground="#374151" HorizontalAlignment="Right" FontFamily="{StaticResource AppFontBold}" FontSize="15"/>
+                                                        <Button Grid.Column="3" Content="✕" Command="{Binding Data.RemoveItemFromRecipeCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="#EF4444" FontSize="12" Margin="8,0,0,0"/>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ListView.ItemTemplate>
@@ -338,19 +362,19 @@
                                                             <ColumnDefinition Width="100"/>
                                                             <ColumnDefinition Width="40"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Ingredient.Name}" Foreground="#111827"/>
+                                                        <TextBlock Text="{Binding Ingredient.Name}" Foreground="#111827" FontFamily="{StaticResource AppFontMedium}" FontSize="15"/>
 
                                                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <TextBlock Foreground="#6B7280" FontSize="13">
+                                                            <TextBlock Foreground="#6B7280" FontSize="14" FontFamily="{StaticResource AppFont}">
                                                                 <Run Text="{Binding UsageQty}"/> <Run Text="{Binding UsageUnit}"/>
                                                             </TextBlock>
-                                                            <Border Background="#DBEAFE" CornerRadius="3" Margin="6,0,0,0" Padding="4,0" Visibility="{Binding IsPerPiece, Converter={StaticResource BoolVisConv}}">
-                                                                <TextBlock Text="/pcs" FontSize="10" Foreground="#1E40AF" FontFamily="{StaticResource AppFontBold}"/>
+                                                            <Border Background="#DBEAFE" CornerRadius="4" Margin="8,0,0,0" Padding="6,2" Visibility="{Binding IsPerPiece, Converter={StaticResource BoolVisConv}}">
+                                                                <TextBlock Text="/pcs" FontSize="11" Foreground="#1E40AF" FontFamily="{StaticResource AppFontBold}"/>
                                                             </Border>
                                                         </StackPanel>
 
-                                                        <TextBlock Grid.Column="2" Text="{Binding CalculatedCost, Converter={StaticResource MoneyConv}}" Foreground="#374151" HorizontalAlignment="Right" FontFamily="{StaticResource AppFontBold}"/>
-                                                        <Button Grid.Column="3" Content="✕" Command="{Binding Data.RemoveItemFromRecipeCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="#EF4444" FontSize="10" Margin="8,0,0,0"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding CalculatedCost, Converter={StaticResource MoneyConv}}" Foreground="#374151" HorizontalAlignment="Right" FontFamily="{StaticResource AppFontBold}" FontSize="15"/>
+                                                        <Button Grid.Column="3" Content="✕" Command="{Binding Data.RemoveItemFromRecipeCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="#EF4444" FontSize="12" Margin="8,0,0,0"/>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ListView.ItemTemplate>
@@ -365,21 +389,21 @@
                             <TabViewItem.IconSource>
                                 <SymbolIconSource Symbol="Setting"/>
                             </TabViewItem.IconSource>
-                            <StackPanel Spacing="16" Padding="0,16,0,0">
+                            <StackPanel Spacing="16" Padding="0,20,0,0">
                                 <Grid Style="{StaticResource RecipeCardStyle}">
                                     <StackPanel>
                                         <TextBlock Text="BIAYA OPERASIONAL" Style="{StaticResource IngredientGroupHeaderStyle}" Margin="0,0,0,16"/>
-                                        <Grid Margin="0,0,0,16" ColumnSpacing="8">
+                                        <Grid Margin="0,0,0,16" ColumnSpacing="12">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="150"/>
                                                 <ColumnDefinition Width="100"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBox Grid.Column="0" PlaceholderText="Nama (Contoh: Gas)" Text="{Binding NewOverheadName, Mode=TwoWay}"/>
-                                            <TextBox Grid.Column="1" PlaceholderText="Biaya (Rp)" Text="{Binding NewOverheadCost, Mode=TwoWay}"/>
-                                            <TextBox Grid.Column="2" PlaceholderText="Batch" Text="{Binding UsageCycles, Mode=TwoWay}"/>
-                                            <Button Grid.Column="3" Content="Add" Command="{Binding AddOverheadCommand}"/>
+                                            <TextBox Grid.Column="0" PlaceholderText="Nama (Contoh: Gas)" Text="{Binding NewOverheadName, Mode=TwoWay}" FontFamily="{StaticResource AppFont}"/>
+                                            <TextBox Grid.Column="1" PlaceholderText="Biaya (Rp)" Text="{Binding NewOverheadCost, Mode=TwoWay}" FontFamily="{StaticResource AppFontMedium}"/>
+                                            <TextBox Grid.Column="2" PlaceholderText="Batch" Text="{Binding UsageCycles, Mode=TwoWay}" FontFamily="{StaticResource AppFontMedium}"/>
+                                            <Button Grid.Column="3" Content="Add" Command="{Binding AddOverheadCommand}" FontFamily="{StaticResource AppFontBold}"/>
                                         </Grid>
                                         <ListView ItemsSource="{Binding SelectedRecipe.Overheads}">
                                             <ListView.ItemTemplate>
@@ -390,9 +414,9 @@
                                                             <ColumnDefinition Width="150"/>
                                                             <ColumnDefinition Width="40"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Name}" Foreground="#111827"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding Cost, Converter={StaticResource MoneyConv}}" HorizontalAlignment="Right" Foreground="#374151" FontFamily="{StaticResource AppFontBold}"/>
-                                                        <Button Grid.Column="2" Content="✕" Command="{Binding Data.RemoveOverheadCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="#EF4444" FontSize="10" Margin="8,0,0,0"/>
+                                                        <TextBlock Text="{Binding Name}" Foreground="#111827" FontFamily="{StaticResource AppFontMedium}" FontSize="15"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Cost, Converter={StaticResource MoneyConv}}" HorizontalAlignment="Right" Foreground="#374151" FontFamily="{StaticResource AppFontBold}" FontSize="15"/>
+                                                        <Button Grid.Column="2" Content="✕" Command="{Binding Data.RemoveOverheadCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="#EF4444" FontSize="12" Margin="8,0,0,0"/>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ListView.ItemTemplate>
@@ -407,7 +431,7 @@
                                 <SymbolIconSource Symbol="Shop"/>
                             </TabViewItem.IconSource>
 
-                            <Grid Padding="0,16,0,0" ColumnSpacing="24">
+                            <Grid Padding="0,20,0,0" ColumnSpacing="24">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="1.2*"/>
                                     <ColumnDefinition Width="1.8*"/>
@@ -415,16 +439,16 @@
 
                                 <StackPanel Grid.Column="0" Spacing="24">
                                     <Grid Style="{StaticResource RecipeCardStyle}">
-                                        <StackPanel Spacing="24">
+                                        <StackPanel Spacing="32">
                                             <StackPanel Spacing="8">
                                                 <Grid>
                                                     <TextBlock Text="BUFFER WASTE" Style="{StaticResource IngredientGroupHeaderStyle}" Margin="0"/>
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2">
-                                                        <TextBlock Text="{Binding WasteBufferPercent}" FontFamily="{StaticResource AppFontBold}" Foreground="#374151"/>
-                                                        <TextBlock Text="%" FontFamily="{StaticResource AppFontBold}" Foreground="#374151"/>
+                                                        <TextBlock Text="{Binding WasteBufferPercent}" FontFamily="{StaticResource AppFontBlack}" FontSize="18" Foreground="#374151"/>
+                                                        <TextBlock Text="%" FontFamily="{StaticResource AppFontBold}" FontSize="18" Foreground="#374151"/>
                                                     </StackPanel>
                                                 </Grid>
-                                                <TextBlock Text="Cadangan untuk produk gagal/rusak." FontSize="11" Foreground="#6B7280"/>
+                                                <TextBlock Text="Cadangan untuk produk gagal/rusak." FontSize="13" FontFamily="{StaticResource AppFontLight}" Foreground="#6B7280"/>
                                                 <Slider Value="{Binding WasteBufferPercent, Mode=TwoWay}" Minimum="0" Maximum="20" StepFrequency="1"/>
                                             </StackPanel>
 
@@ -432,11 +456,11 @@
                                                 <Grid>
                                                     <TextBlock Text="TARGET MARGIN" Style="{StaticResource IngredientGroupHeaderStyle}" Margin="0"/>
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2">
-                                                        <TextBlock Text="{Binding TargetMarginPercent}" FontFamily="{StaticResource AppFontBold}" Foreground="#10B981"/>
-                                                        <TextBlock Text="%" FontFamily="{StaticResource AppFontBold}" Foreground="#10B981"/>
+                                                        <TextBlock Text="{Binding TargetMarginPercent}" FontFamily="{StaticResource AppFontBlack}" FontSize="18" Foreground="#10B981"/>
+                                                        <TextBlock Text="%" FontFamily="{StaticResource AppFontBold}" FontSize="18" Foreground="#10B981"/>
                                                     </StackPanel>
                                                 </Grid>
-                                                <TextBlock Text="Keuntungan yang diinginkan dari harga jual." FontSize="11" Foreground="#6B7280"/>
+                                                <TextBlock Text="Keuntungan yang diinginkan dari harga jual." FontSize="13" FontFamily="{StaticResource AppFontLight}" Foreground="#6B7280"/>
                                                 <Slider Value="{Binding TargetMarginPercent, Mode=TwoWay}" Minimum="0" Maximum="90" StepFrequency="5"/>
                                             </StackPanel>
 
@@ -444,26 +468,26 @@
                                                 <Grid>
                                                     <TextBlock Text="PAJAK / SERVICE" Style="{StaticResource IngredientGroupHeaderStyle}" Margin="0"/>
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2">
-                                                        <TextBlock Text="{Binding TaxPercent}" FontFamily="{StaticResource AppFontBold}" Foreground="#374151"/>
-                                                        <TextBlock Text="%" FontFamily="{StaticResource AppFontBold}" Foreground="#374151"/>
+                                                        <TextBlock Text="{Binding TaxPercent}" FontFamily="{StaticResource AppFontBlack}" FontSize="18" Foreground="#374151"/>
+                                                        <TextBlock Text="%" FontFamily="{StaticResource AppFontBold}" FontSize="18" Foreground="#374151"/>
                                                     </StackPanel>
                                                 </Grid>
-                                                <TextBlock Text="PB1 (10%) atau PPN (11%)" FontSize="11" Foreground="#6B7280"/>
+                                                <TextBlock Text="PB1 (10%) atau PPN (11%)" FontSize="13" FontFamily="{StaticResource AppFontLight}" Foreground="#6B7280"/>
                                                 <Slider Value="{Binding TaxPercent, Mode=TwoWay}" Minimum="0" Maximum="20" StepFrequency="1"/>
                                             </StackPanel>
                                         </StackPanel>
                                     </Grid>
 
-                                    <StackPanel Spacing="8">
-                                        <Button Content="Update &amp; Hitung" Command="{Binding UpdateRecipeDetailsCommand}" HorizontalAlignment="Stretch" Style="{StaticResource PrimaryButtonStyle}"/>
+                                    <StackPanel Spacing="12">
+                                        <Button Content="Update &amp; Hitung" Command="{Binding UpdateRecipeDetailsCommand}" HorizontalAlignment="Stretch" Style="{StaticResource PrimaryButtonStyle}" FontFamily="{StaticResource AppFontBold}"/>
 
                                         <Button Click="ShowDetail_Click"
                                                 HorizontalAlignment="Stretch" Background="Transparent" 
-                                                BorderBrush="#D1D5DB" BorderThickness="1" Foreground="#4B5563">
+                                                BorderBrush="#E5E7EB" BorderThickness="1" Foreground="#4B5563">
                                             <Button.Content>
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                                     <SymbolIcon Symbol="List" />
-                                                    <TextBlock Text="Penjelasan Detail"/>
+                                                    <TextBlock Text="Penjelasan Detail Rumus" FontFamily="{StaticResource AppFontMedium}"/>
                                                 </StackPanel>
                                             </Button.Content>
                                         </Button>
@@ -472,22 +496,22 @@
 
                                 <StackPanel Grid.Column="1" Spacing="16">
 
-                                    <Grid Style="{StaticResource RecipeCardStyle}" Background="#1F2937">
+                                    <Grid Style="{StaticResource RecipeCardStyle}" Background="#111827">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="HARGA JUAL (EDITABLE)" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="#9CA3AF" CharacterSpacing="100"/>
+                                            <TextBlock Text="HARGA JUAL (EDIT)" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="#9CA3AF" CharacterSpacing="100"/>
 
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,4">
-                                                <TextBlock Text="Rp" FontSize="24" Foreground="White" FontFamily="{StaticResource AppFontBold}" VerticalAlignment="Bottom" Margin="0,0,8,4"/>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,8,0,8">
+                                                <TextBlock Text="Rp" FontSize="28" Foreground="White" FontFamily="{StaticResource AppFontBold}" VerticalAlignment="Bottom" Margin="0,0,8,8"/>
 
                                                 <TextBox Text="{Binding ManualSellingPriceInput, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" 
                                                          KeyDown="OnPriceBoxKeyDown"
-                                                         FontSize="32" 
-                                                         FontFamily="{StaticResource AppFontBold}" 
+                                                         FontSize="48" 
+                                                         FontFamily="{StaticResource AppFontBlack}" 
                                                          Foreground="White" 
                                                          Background="Transparent" 
                                                          BorderThickness="0,0,0,1" 
@@ -496,21 +520,21 @@
                                             </StackPanel>
 
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock FontSize="11" Foreground="#D1D5DB" Opacity="0.8">
+                                                <TextBlock FontSize="13" Foreground="#D1D5DB" Opacity="0.8" FontFamily="{StaticResource AppFontLight}">
                                                     <Run Text="Termasuk Pajak"/> <Run Text="{Binding TaxPercent}"/> <Run Text="%"/>
                                                 </TextBlock>
-                                                <TextBlock Text="|" Foreground="#6B7280"/>
-                                                <TextBlock FontSize="11" Foreground="#10B981" FontWeight="Bold">
+                                                <TextBlock Text="|" Foreground="#4B5563"/>
+                                                <TextBlock FontSize="13" Foreground="#10B981" FontFamily="{StaticResource AppFontBold}">
                                                     <Run Text="Margin Aktif:"/> <Run Text="{Binding ProfitMarginDisplay}"/>
                                                 </TextBlock>
                                             </StackPanel>
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Right">
-                                            <Border Background="#065F46" CornerRadius="4" Padding="8,4" HorizontalAlignment="Right" Margin="0,0,0,8">
+                                            <Border Background="#1A10B981" BorderBrush="#059669" BorderThickness="1" CornerRadius="6" Padding="12,8" HorizontalAlignment="Right" Margin="0,0,0,8">
                                                 <StackPanel>
-                                                    <TextBlock Text="NET PROFIT" FontSize="9" Foreground="#6EE7B7" FontFamily="{StaticResource AppFontBold}"/>
-                                                    <TextBlock Text="{Binding EstimatedProfitPerUnit, Converter={StaticResource MoneyConv}}" FontSize="14" Foreground="White" FontFamily="{StaticResource AppFontBold}" HorizontalAlignment="Right"/>
+                                                    <TextBlock Text="NET PROFIT" FontSize="11" Foreground="#34D399" FontFamily="{StaticResource AppFontBlack}" CharacterSpacing="50"/>
+                                                    <TextBlock Text="{Binding EstimatedProfitPerUnit, Converter={StaticResource MoneyConv}}" FontSize="16" Foreground="White" FontFamily="{StaticResource AppFontBold}" HorizontalAlignment="Right"/>
                                                 </StackPanel>
                                             </Border>
                                         </StackPanel>
@@ -524,20 +548,20 @@
 
                                         <Grid Style="{StaticResource RecipeCardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="TOTAL PROFIT / BATCH" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
-                                                <TextBlock Text="{Binding EstimatedProfitPerBatch, Converter={StaticResource MoneyConv}}" FontSize="20" Style="{StaticResource BigNumberStyle}" Foreground="#059669" Margin="0,4"/>
-                                                <TextBlock Text="Potensi keuntungan bersih 1 adonan" FontSize="10" Foreground="#9CA3AF"/>
+                                                <TextBlock Text="TOTAL PROFIT / BATCH" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
+                                                <TextBlock Text="{Binding EstimatedProfitPerBatch, Converter={StaticResource MoneyConv}}" FontSize="24" FontFamily="{StaticResource AppFontBlack}" Foreground="#059669" Margin="0,6"/>
+                                                <TextBlock Text="Potensi keuntungan bersih" FontSize="12" Foreground="#9CA3AF" FontFamily="{StaticResource AppFontLight}"/>
                                             </StackPanel>
                                         </Grid>
 
                                         <Grid Grid.Column="1" Style="{StaticResource RecipeCardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="TITIK IMPAS (BEP)" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
+                                                <TextBlock Text="TITIK IMPAS (BEP)" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
                                                 <StackPanel Orientation="Horizontal" Spacing="4">
-                                                    <TextBlock Text="{Binding BreakEvenPointQty}" FontSize="20" Style="{StaticResource BigNumberStyle}" Margin="0,4"/>
-                                                    <TextBlock Text="Pcs" VerticalAlignment="Bottom" Margin="0,0,0,6" Foreground="#9CA3AF"/>
+                                                    <TextBlock Text="{Binding BreakEvenPointQty}" FontSize="24" FontFamily="{StaticResource AppFontBlack}" Margin="0,6"/>
+                                                    <TextBlock Text="Pcs" VerticalAlignment="Bottom" Margin="0,0,0,10" Foreground="#9CA3AF" FontFamily="{StaticResource AppFontMedium}"/>
                                                 </StackPanel>
-                                                <TextBlock Text="Harus terjual untuk balik modal" FontSize="10" Foreground="#9CA3AF"/>
+                                                <TextBlock Text="Target jual balik modal" FontSize="12" Foreground="#9CA3AF" FontFamily="{StaticResource AppFontLight}"/>
                                             </StackPanel>
                                         </Grid>
                                     </Grid>
@@ -555,26 +579,26 @@
 
                                                 <Border Style="{StaticResource CostBoxStyle}">
                                                     <StackPanel>
-                                                        <TextBlock Text="Adonan" FontSize="10" Foreground="#6B7280"/>
-                                                        <TextBlock Text="{Binding DoughCost, Converter={StaticResource MoneyConv}}" FontSize="12" FontFamily="{StaticResource AppFontBold}"/>
+                                                        <TextBlock Text="Adonan" FontSize="11" Foreground="#6B7280" FontFamily="{StaticResource AppFontMedium}"/>
+                                                        <TextBlock Text="{Binding DoughCost, Converter={StaticResource MoneyConv}}" FontSize="14" FontFamily="{StaticResource AppFontBold}"/>
                                                     </StackPanel>
                                                 </Border>
                                                 <Border Grid.Column="1" Style="{StaticResource CostBoxStyle}">
                                                     <StackPanel>
-                                                        <TextBlock Text="Topping" FontSize="10" Foreground="#6B7280"/>
-                                                        <TextBlock Text="{Binding ToppingCost, Converter={StaticResource MoneyConv}}" FontSize="12" FontFamily="{StaticResource AppFontBold}"/>
+                                                        <TextBlock Text="Topping" FontSize="11" Foreground="#6B7280" FontFamily="{StaticResource AppFontMedium}"/>
+                                                        <TextBlock Text="{Binding ToppingCost, Converter={StaticResource MoneyConv}}" FontSize="14" FontFamily="{StaticResource AppFontBold}"/>
                                                     </StackPanel>
                                                 </Border>
                                                 <Border Grid.Column="2" Style="{StaticResource CostBoxStyle}">
                                                     <StackPanel>
-                                                        <TextBlock Text="Kemasan" FontSize="10" Foreground="#6B7280"/>
-                                                        <TextBlock Text="{Binding PackagingCost, Converter={StaticResource MoneyConv}}" FontSize="12" FontFamily="{StaticResource AppFontBold}"/>
+                                                        <TextBlock Text="Kemasan" FontSize="11" Foreground="#6B7280" FontFamily="{StaticResource AppFontMedium}"/>
+                                                        <TextBlock Text="{Binding PackagingCost, Converter={StaticResource MoneyConv}}" FontSize="14" FontFamily="{StaticResource AppFontBold}"/>
                                                     </StackPanel>
                                                 </Border>
                                                 <Border Grid.Column="3" Style="{StaticResource CostBoxStyle}">
                                                     <StackPanel>
-                                                        <TextBlock Text="Overhead" FontSize="10" Foreground="#6B7280"/>
-                                                        <TextBlock Text="{Binding OperationalCost, Converter={StaticResource MoneyConv}}" FontSize="12" FontFamily="{StaticResource AppFontBold}"/>
+                                                        <TextBlock Text="Overhead" FontSize="11" Foreground="#6B7280" FontFamily="{StaticResource AppFontMedium}"/>
+                                                        <TextBlock Text="{Binding OperationalCost, Converter={StaticResource MoneyConv}}" FontSize="14" FontFamily="{StaticResource AppFontBold}"/>
                                                     </StackPanel>
                                                 </Border>
                                             </Grid>
@@ -604,35 +628,35 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="TOTAL BATCH COST" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
-                    <TextBlock Text="{Binding FinalHppBatch, Converter={StaticResource MoneyConv}}" FontSize="24" Style="{StaticResource BigNumberStyle}"/>
+                    <TextBlock Text="TOTAL BATCH COST" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
+                    <TextBlock Text="{Binding FinalHppBatch, Converter={StaticResource MoneyConv}}" FontSize="28" Style="{StaticResource BigNumberStyle}"/>
                 </StackPanel>
 
                 <Rectangle Grid.Column="1" Width="1" Fill="#E5E7EB" Margin="24,4"/>
 
                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                    <TextBlock Text="DOUGH WEIGHT" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
-                    <TextBlock FontSize="24" Style="{StaticResource BigNumberStyle}">
+                    <TextBlock Text="DOUGH WEIGHT" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
+                    <TextBlock FontSize="28" Style="{StaticResource BigNumberStyle}">
                         <Run Text="{Binding TotalMainDoughWeight}"/>
-                        <Run Text="g" FontSize="16" Foreground="#6B7280" FontFamily="{StaticResource AppFont}"/>
+                        <Run Text="g" FontSize="18" Foreground="#6B7280" FontFamily="{StaticResource AppFontMedium}"/>
                     </TextBlock>
                 </StackPanel>
 
                 <Rectangle Grid.Column="3" Width="1" Fill="#E5E7EB" Margin="24,4"/>
 
                 <StackPanel Grid.Column="4" VerticalAlignment="Center">
-                    <TextBlock Text="HPP / PCS" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
-                    <TextBlock Text="{Binding FinalHppPerUnit, Converter={StaticResource MoneyConv}}" FontSize="24" Style="{StaticResource BigNumberStyle}"/>
+                    <TextBlock Text="HPP / PCS" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
+                    <TextBlock Text="{Binding FinalHppPerUnit, Converter={StaticResource MoneyConv}}" FontSize="28" Style="{StaticResource BigNumberStyle}"/>
                 </StackPanel>
 
                 <Rectangle Grid.Column="5" Width="1" Fill="#E5E7EB" Margin="24,4"/>
 
                 <Grid Grid.Column="6" VerticalAlignment="Center" HorizontalAlignment="Right">
                     <StackPanel HorizontalAlignment="Right">
-                        <TextBlock Text="FOOD COST" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" HorizontalAlignment="Right" CharacterSpacing="50"/>
+                        <TextBlock Text="FOOD COST" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" HorizontalAlignment="Right" CharacterSpacing="50"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <TextBlock Text="{Binding SelectedRecipe.FoodCostPercentage}" FontSize="32" Style="{StaticResource BigNumberStyle}"/>
-                            <TextBlock Text="%" FontSize="18" VerticalAlignment="Bottom" Margin="2,0,0,6" Foreground="#9CA3AF" FontFamily="{StaticResource AppFont}"/>
+                            <TextBlock Text="{Binding SelectedRecipe.FoodCostPercentage}" FontSize="36" Style="{StaticResource BigNumberStyle}"/>
+                            <TextBlock Text="%" FontSize="20" VerticalAlignment="Bottom" Margin="2,0,0,6" Foreground="#9CA3AF" FontFamily="{StaticResource AppFontLight}"/>
                         </StackPanel>
                     </StackPanel>
                 </Grid>
