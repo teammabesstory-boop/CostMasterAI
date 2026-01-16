@@ -45,6 +45,21 @@ namespace CostMasterAI.Helpers
             // Kalau satuannya sama, ya 1:1
             if (fromUnit == toUnit) return 1;
 
+            // --- LOGIC TAMBAHAN: KONVERSI SPESIAL TELUR (Pcs <-> Gram) ---
+            // Asumsi: 1 Pcs Telur = 50 Gram (Standar Baking)
+
+            // Case 1: Pcs ke Gram (Misal: Resep minta berat, inputan Pcs)
+            if (fromUnit == "Pcs" && toUnit == "Gram")
+            {
+                return 50; // 1 Pcs = 50 Gram
+            }
+
+            // Case 2: Gram ke Pcs (Kebalikannya)
+            if (fromUnit == "Gram" && toUnit == "Pcs")
+            {
+                return 0.02; // 1 Gram = 0.02 Pcs (1/50)
+            }
+
             // Cek apakah ada di kamus kita
             if (!ToBaseMultiplier.ContainsKey(fromUnit) || !ToBaseMultiplier.ContainsKey(toUnit))
             {
@@ -57,10 +72,10 @@ namespace CostMasterAI.Helpers
             var cat1 = GetCategory(fromUnit);
             var cat2 = GetCategory(toUnit);
 
-            // Kalau Pcs, harus ke Pcs lagi (kecuali kita punya data berat per pcs, tapi itu nanti)
-            if (cat1 == "Count" || cat2 == "Count")
+            // Kalau Pcs selain ke Gram (Telur), return 0
+            if ((cat1 == "Count" || cat2 == "Count") && !(fromUnit == "Pcs" && toUnit == "Gram") && !(fromUnit == "Gram" && toUnit == "Pcs"))
             {
-                if (cat1 != cat2) return 0; // Gak bisa convert Pcs ke Gram tanpa data spesifik
+                return 0;
             }
 
             // Rumus: (1 * Multiplier Awal) / Multiplier Akhir
