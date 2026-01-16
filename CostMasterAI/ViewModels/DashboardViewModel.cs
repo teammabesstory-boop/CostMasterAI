@@ -1,15 +1,17 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input; // Wajib untuk RelayCommand
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using CostMasterAI.Core.Models;   // Akses Model dari Core
+using CostMasterAI.Core.Services; // Akses DbContext dari Core
 
 namespace CostMasterAI.ViewModels
 {
-    // Helper Class buat Chart Data
+    // Helper Class untuk Chart/Grafik
     public class CostStructureItem
     {
         public string Category { get; set; } = string.Empty;
@@ -29,28 +31,38 @@ namespace CostMasterAI.ViewModels
     {
         private readonly AppDbContext _dbContext;
 
-        // --- 1. EXECUTIVE SUMMARY (KPIs) ---
+        // ==========================================
+        // 1. DATA KEUANGAN (INTEGRASI BARU)
+        // ==========================================
+        [ObservableProperty] private decimal _currentRevenue;     // Pemasukan Bulan Ini
+        [ObservableProperty] private decimal _currentExpense;     // Pengeluaran Bulan Ini
+        [ObservableProperty] private decimal _currentNetProfit;   // Profit Bulan Ini
+        [ObservableProperty] private decimal _cashFlowBalance;    // Saldo Total (Semua Waktu)
+
+        public ObservableCollection<Transaction> RecentTransactions { get; } = new();
+
+        // ==========================================
+        // 2. DATA PRODUKSI & RESEP (FITUR LAMA)
+        // ==========================================
         [ObservableProperty] private int _totalRecipesCount;
+        [ObservableProperty] private int _totalIngredientsCount; // Baru
         [ObservableProperty] private decimal _totalProductionCost;
         [ObservableProperty] private string _globalGrossProfitMargin = "0%";
         [ObservableProperty] private int _efficiencyScore = 100;
         [ObservableProperty] private string _efficiencyStatus = "Excellent";
-
-        // UI Helper Properties
         [ObservableProperty] private string _starMenuName = "-";
-        [ObservableProperty] private string _lowStockAlertText = "Stok Aman";
 
-        // --- 2. COST STRUCTURE ---
+        // Collections untuk Grafik & Tabel
         public ObservableCollection<CostStructureItem> CostStructure { get; } = new();
         public ObservableCollection<TopCostDriver> TopCostDrivers { get; } = new();
 
-        // --- 3. PRODUCT MATRIX (DataGrid Source) ---
+        // Product Matrix Collections
         public ObservableCollection<Recipe> StarMenus { get; } = new();
         public ObservableCollection<Recipe> CashCowMenus { get; } = new();
         public ObservableCollection<Recipe> PuzzleMenus { get; } = new();
         public ObservableCollection<Recipe> DogMenus { get; } = new();
 
-        // Counts
+        // Counters
         [ObservableProperty] private int _starProductsCount;
         [ObservableProperty] private int _cashCowCount;
         [ObservableProperty] private int _puzzleCount;
@@ -60,26 +72,56 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private bool _isLoading;
         [ObservableProperty] private string _statusMessage = "Ready";
 
-        public DashboardViewModel(AppDbContext dbContext)
+        public DashboardViewModel()
         {
-            _dbContext = dbContext;
-            // Panggil async method tanpa await di constructor (Fire-and-forget aman untuk init)
-            _ = RefreshDashboardAsync();
+            // Inisialisasi DbContext
+            _dbContext = new AppDbContext();
         }
 
-        // --- FIX: GANTI NAMA & TAMBAH RELAY COMMAND ---
-        // [RelayCommand] akan men-generate 'RefreshDashboardCommand' untuk XAML
-        // Method public ini bisa dipanggil manual oleh Code-Behind
+        // Method ini dipanggil dari DashboardPage.xaml.cs saat halaman dibuka
         [RelayCommand]
-        public async Task RefreshDashboardAsync()
+        public async Task LoadDashboardData() // Ganti nama dari RefreshDashboardAsync agar konsisten
         {
             if (IsLoading) return;
             IsLoading = true;
-            StatusMessage = "Menganalisa Data Bisnis...";
+            StatusMessage = "Menganalisa Data...";
 
             try
             {
-                // 1. Fetch Data Lengkap
+                // Pastikan DB Siap
+                await _dbContext.Database.EnsureCreatedAsync();
+
+                // ---------------------------------------------------------
+                // STEP 1: LOAD DATA KEUANGAN (TRANSACTIONS)
+                // ---------------------------------------------------------
+                var allTransactions = await _dbContext.Transactions.AsNoTracking().ToListAsync();
+
+                // Hitung Saldo Total (Semua Waktu)
+                var totalIncome = allTransactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
+                var totalExpense = allTransactions.Where(t => t.Type == "Expense").Sum(t => t.Amount);
+                CashFlowBalance = totalIncome - totalExpense;
+
+                // Hitung Data Bulan Ini
+                var now = DateTime.Now;
+                var startMonth = new DateTime(now.Year, now.Month, 1);
+                var nextMonth = startMonth.AddMonths(1);
+
+                var monthTrx = allTransactions.Where(t => t.Date >= startMonth && t.Date < nextMonth).ToList();
+
+                CurrentRevenue = monthTrx.Where(t => t.Type == "Income").Sum(t => t.Amount);
+                CurrentExpense = monthTrx.Where(t => t.Type == "Expense").Sum(t => t.Amount);
+                CurrentNetProfit = CurrentRevenue - CurrentExpense;
+
+                // Populate 5 Transaksi Terakhir
+                RecentTransactions.Clear();
+                foreach (var item in allTransactions.OrderByDescending(t => t.Date).Take(5))
+                {
+                    RecentTransactions.Add(item);
+                }
+
+                // ---------------------------------------------------------
+                // STEP 2: LOAD DATA PRODUKSI (RECIPES & INGREDIENTS)
+                // ---------------------------------------------------------
                 var recipes = await _dbContext.Recipes
                     .AsNoTracking()
                     .Include(r => r.Items).ThenInclude(i => i.Ingredient)
@@ -87,6 +129,7 @@ namespace CostMasterAI.ViewModels
                     .ToListAsync();
 
                 TotalRecipesCount = recipes.Count;
+                TotalIngredientsCount = await _dbContext.Ingredients.CountAsync();
 
                 if (recipes.Any())
                 {
@@ -96,14 +139,14 @@ namespace CostMasterAI.ViewModels
                 }
                 else
                 {
-                    ResetDashboard();
+                    ResetProductionStats();
                 }
 
-                StatusMessage = $"Data Terupdate: {DateTime.Now:HH:mm}";
+                StatusMessage = $"Update: {DateTime.Now:HH:mm}";
             }
             catch (Exception ex)
             {
-                StatusMessage = "Gagal memuat data dashboard.";
+                StatusMessage = "Error memuat data.";
                 System.Diagnostics.Debug.WriteLine($"DASHBOARD ERROR: {ex.Message}");
             }
             finally
@@ -112,18 +155,24 @@ namespace CostMasterAI.ViewModels
             }
         }
 
-        // --- LOGIC PERHITUNGAN ---
+        // --- LOGIC PERHITUNGAN PRODUKSI (DARI KODE LAMA) ---
 
         private void CalculateExecutiveSummary(List<Recipe> recipes)
         {
-            // Total HPP Global
+            // Total HPP Global (Estimasi nilai inventory produk jadi)
             TotalProductionCost = recipes.Sum(r => r.TotalBatchCost);
 
-            // Rata-rata Margin
-            var validRecipes = recipes.Where(r => r.DineInPrice > 0).ToList();
+            // Rata-rata Margin Resep
+            var validRecipes = recipes.Where(r => r.ActualSellingPrice > 0).ToList();
             if (validRecipes.Any())
             {
-                double avgMargin = validRecipes.Average(r => r.RealMarginPercent);
+                // Gunakan properti helper di Model jika ada, atau hitung manual
+                // Asumsi di Model Recipe ada helper method/prop untuk Margin
+                double avgMargin = validRecipes.Average(r =>
+                {
+                    if (r.ActualSellingPrice == 0) return 0;
+                    return (double)((r.ActualSellingPrice - r.CostPerUnit) / r.ActualSellingPrice * 100);
+                });
                 GlobalGrossProfitMargin = $"{avgMargin:F1}%";
             }
             else
@@ -131,7 +180,7 @@ namespace CostMasterAI.ViewModels
                 GlobalGrossProfitMargin = "0%";
             }
 
-            // Efficiency Score
+            // Efficiency Score (Base on Cooking Loss)
             double avgCookingLoss = recipes.Average(r => r.CookingLossPercent);
             double score = 100 - (avgCookingLoss * 2.0);
             score = Math.Max(0, Math.Min(100, score));
@@ -160,7 +209,7 @@ namespace CostMasterAI.ViewModels
             CostStructure.Add(new CostStructureItem { Category = "Tenaga Kerja", Amount = totalLabor, Percentage = (double)(totalLabor / grandTotal) * 100, Color = "#3B82F6" });
             CostStructure.Add(new CostStructureItem { Category = "Overhead", Amount = totalOverhead, Percentage = (double)(totalOverhead / grandTotal) * 100, Color = "#F59E0B" });
 
-            // Top Cost Drivers (Pareto)
+            // Top Cost Drivers (Pareto Analysis)
             var materialDrivers = recipes.SelectMany(r => r.Items)
                 .GroupBy(i => i.Ingredient?.Name ?? "Unknown")
                 .Select(g => new
@@ -188,18 +237,22 @@ namespace CostMasterAI.ViewModels
             StarMenus.Clear(); CashCowMenus.Clear(); PuzzleMenus.Clear(); DogMenus.Clear();
             StarProductsCount = 0; CashCowCount = 0; PuzzleCount = 0; DogCount = 0;
 
-            double avgSales = recipes.Average(r => r.EstMonthlySales);
-            if (avgSales < 10) avgSales = 10;
-
-            double targetMargin = 40.0;
+            // Menggunakan YieldQty sebagai proxy untuk "Volume Penjualan" jika data sales belum ada
+            double avgVolume = recipes.Average(r => r.YieldQty);
+            double targetMargin = 40.0; // Target margin standar industri F&B
 
             Recipe? bestPerformer = null;
             decimal maxProfitVal = -1;
 
             foreach (var r in recipes)
             {
-                bool isHighMargin = r.RealMarginPercent >= targetMargin;
-                bool isHighVolume = r.EstMonthlySales >= avgSales;
+                // Hitung margin per resep
+                double margin = 0;
+                if (r.ActualSellingPrice > 0)
+                    margin = (double)((r.ActualSellingPrice - r.CostPerUnit) / r.ActualSellingPrice * 100);
+
+                bool isHighMargin = margin >= targetMargin;
+                bool isHighVolume = r.YieldQty >= avgVolume;
 
                 if (isHighMargin && isHighVolume)
                 {
@@ -222,11 +275,11 @@ namespace CostMasterAI.ViewModels
                     DogCount++;
                 }
 
-                // Cari Top Performer
-                decimal totalProfit = (r.DineInPrice - r.CostPerUnit) * r.EstMonthlySales;
-                if (totalProfit > maxProfitVal)
+                // Cari Top Performer (Estimasi Profit)
+                decimal estimatedProfit = (r.ActualSellingPrice - r.CostPerUnit) * (decimal)r.YieldQty;
+                if (estimatedProfit > maxProfitVal)
                 {
-                    maxProfitVal = totalProfit;
+                    maxProfitVal = estimatedProfit;
                     bestPerformer = r;
                 }
             }
@@ -234,7 +287,7 @@ namespace CostMasterAI.ViewModels
             StarMenuName = bestPerformer?.Name ?? "-";
         }
 
-        private void ResetDashboard()
+        private void ResetProductionStats()
         {
             TotalProductionCost = 0;
             GlobalGrossProfitMargin = "0%";

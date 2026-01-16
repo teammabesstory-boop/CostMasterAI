@@ -1,14 +1,15 @@
-﻿using CostMasterAI.Views;
-using CostMasterAI.Services;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml;
 using System;
+using CostMasterAI.Core.Services; // FIXED: Mengarah ke Project Core
+using CostMasterAI.ViewModels;
+using CostMasterAI.Services;      // Untuk AIService (yang masih di project UI)
 
 namespace CostMasterAI
 {
     public partial class App : Application
     {
-        // Properti Static agar MainWindow bisa diakses dari ViewModel (Penting untuk FilePicker)
+        // Properti Static agar MainWindow bisa diakses global (Penting untuk FilePicker/Dialog)
         public static Window MainWindow { get; private set; }
 
         private Window m_window;
@@ -21,36 +22,45 @@ namespace CostMasterAI
 
             var services = new ServiceCollection();
 
-            // Database Service (Transient disarankan untuk EF Core di Desktop App)
-            services.AddDbContext<AppDbContext>(options => { }, ServiceLifetime.Transient);
+            // --- 1. DATABASE SERVICE ---
+            // Register AppDbContext dari Core.
+            // Meskipun ViewModel mungkin pakai 'new AppDbContext()', 
+            // kita tetap butuh ini untuk inisialisasi awal database (EnsureCreated).
+            services.AddDbContext<AppDbContext>();
 
-            // Register ViewModels & Services
-            services.AddTransient<ViewModels.MainViewModel>();
-            services.AddTransient<ViewModels.IngredientsViewModel>();
-            services.AddTransient<ViewModels.RecipesViewModel>();
+            // --- 2. VIEWMODELS ---
+            services.AddTransient<MainViewModel>();
+            services.AddTransient<IngredientsViewModel>();
+            services.AddTransient<RecipesViewModel>();
+            services.AddTransient<SettingsViewModel>();
+            services.AddTransient<DashboardViewModel>();
+            services.AddTransient<ShoppingListViewModel>();
+            services.AddTransient<ReportsViewModel>(); // Tambahan baru
+
+            // --- 3. SERVICES LAIN ---
             services.AddSingleton<AIService>();
-            services.AddTransient<ViewModels.SettingsViewModel>();
-            services.AddTransient<ViewModels.DashboardViewModel>();
-            services.AddTransient<ViewModels.ShoppingListViewModel>();
 
             Services = services.BuildServiceProvider();
         }
 
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            // Inisialisasi Database
+            // A. Inisialisasi Database (Buat file .db jika belum ada)
             using (var scope = Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                // Pastikan database ada. Jangan gunakan EnsureDeleted() agar data tidak hilang.
                 db.Database.EnsureCreated();
             }
 
+            // B. Membuat Window Utama
+            // PENTING: Gunakan namespace lengkap 'CostMasterAI.Views.MainWindow'
+            // untuk menghindari error "Ambiguous Reference" jika ada sisa file di Core.
             m_window = new CostMasterAI.Views.MainWindow();
 
-            // Assign instance window ke properti static
+            // C. Assign ke properti static
             MainWindow = m_window;
 
+            // D. Tampilkan Window (Solusi agar aplikasi muncul)
             m_window.Activate();
         }
     }
