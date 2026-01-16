@@ -85,8 +85,46 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                    <TextBlock Text="Keterangan / Item" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                    <TextBox PlaceholderText="Contoh: Penjualan Donat 50 Box" Text="{Binding InputNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource AppFont}"/>
+                    <Grid Margin="0,0,0,4">
+                        <TextBlock Text="Keterangan / Item" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+
+                        <Button x:Name="PickButton" HorizontalAlignment="Right" Padding="6,2" Background="{ThemeResource SubtleBackgroundBrush}" BorderThickness="0" CornerRadius="4" ToolTipService.ToolTip="Ambil dari Database Bahan">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xed04;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
+                                <TextBlock Text="Ambil Bahan" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
+                            </StackPanel>
+
+                            <Button.Flyout>
+                                <Flyout Placement="Bottom">
+                                    <Grid Width="280" Height="300">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Text="Pilih Bahan Baku" FontFamily="{StaticResource AppFontBold}" FontSize="14" Margin="0,0,0,12"/>
+
+                                        <ListView Grid.Row="1" ItemsSource="{Binding IngredientsList}" IsItemClickEnabled="True" ItemClick="IngredientList_ItemClick" SelectionMode="None">
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Padding="8" BorderBrush="{ThemeResource CardBorderBrush}" BorderThickness="0,0,0,1">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Name}" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding PricePerPackage, Converter={StaticResource MoneyConv}}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                    </Grid>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                    </Grid>
+
+                    <TextBox PlaceholderText="Contoh: Belanja Tepung..." Text="{Binding InputNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource AppFont}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Margin="0,0,16,0">

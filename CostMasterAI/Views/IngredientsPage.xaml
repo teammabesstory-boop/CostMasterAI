@@ -183,6 +183,36 @@
                                  RowBackground="Transparent"
                                  AlternatingRowBackground="Transparent">
 
+                        <ui:DataGrid.RowStyle>
+                            <Style TargetType="ui:DataGridRow">
+                                <Setter Property="ContextFlyout">
+                                    <Setter.Value>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Edit Bahan" Icon="Edit">
+                                                <MenuFlyoutItem.Command>
+                                                    <Binding Source="{StaticResource ViewModelProxy}" Path="Data.PrepareEditCommand"/>
+                                                </MenuFlyoutItem.Command>
+                                                <MenuFlyoutItem.CommandParameter>
+                                                    <Binding Path="."/>
+                                                </MenuFlyoutItem.CommandParameter>
+                                            </MenuFlyoutItem>
+
+                                            <MenuFlyoutSeparator/>
+
+                                            <MenuFlyoutItem Text="Hapus Bahan" Icon="Delete" Foreground="Red">
+                                                <MenuFlyoutItem.Command>
+                                                    <Binding Source="{StaticResource ViewModelProxy}" Path="Data.DeleteIngredientCommand"/>
+                                                </MenuFlyoutItem.Command>
+                                                <MenuFlyoutItem.CommandParameter>
+                                                    <Binding Path="."/>
+                                                </MenuFlyoutItem.CommandParameter>
+                                            </MenuFlyoutItem>
+                                        </MenuFlyout>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ui:DataGrid.RowStyle>
+
                         <ui:DataGrid.Columns>
                             <ui:DataGridTemplateColumn Header="Nama Bahan" Width="2*">
                                 <ui:DataGridTemplateColumn.CellTemplate>
@@ -224,7 +254,7 @@
                                 <ui:DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Spacing="4" Margin="8">
-                                            <Button Command="{Binding Data.EditIngredientCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}"
+                                            <Button Command="{Binding Data.PrepareEditCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}"
                                                     Padding="8" Background="Transparent" ToolTipService.ToolTip="Edit">
                                                 <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xec86;" FontSize="16" Foreground="{ThemeResource AccentBrush}"/>
                                             </Button>

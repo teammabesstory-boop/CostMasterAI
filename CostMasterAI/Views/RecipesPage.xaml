@@ -102,13 +102,30 @@
             </StackPanel>
 
             <ListView Grid.Row="1" ItemsSource="{Binding Recipes}" SelectedItem="{Binding SelectedRecipe, Mode=TwoWay}" Padding="12,0" SelectionMode="Single">
+
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
                         <Setter Property="CornerRadius" Value="8"/>
                         <Setter Property="Margin" Value="0,4"/>
                         <Setter Property="Padding" Value="4"/>
+                        <Setter Property="ContextFlyout">
+                            <Setter.Value>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Duplikat Resep" Icon="Copy" 
+                                                    Command="{Binding Data.DuplicateRecipeCommand, Source={StaticResource ViewModelProxy}}"
+                                                    CommandParameter="{Binding}"/>
+
+                                    <MenuFlyoutSeparator/>
+
+                                    <MenuFlyoutItem Text="Hapus Resep" Icon="Delete" Foreground="Red"
+                                                    Command="{Binding Data.DeleteRecipeCommand, Source={StaticResource ViewModelProxy}}"
+                                                    CommandParameter="{Binding}"/>
+                                </MenuFlyout>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
                 </ListView.ItemContainerStyle>
+
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Grid Padding="12,12">

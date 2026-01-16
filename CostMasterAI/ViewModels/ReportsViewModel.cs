@@ -4,6 +4,9 @@ using System.Collections.ObjectModel;
 using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+using CostMasterAI.Core.Services; // Pastikan namespace ini benar (Core)
+using CostMasterAI.Core.Models;   // Pastikan namespace ini benar (Core)
 
 namespace CostMasterAI.ViewModels
 {
@@ -21,38 +24,59 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private string _inputNote;
         [ObservableProperty] private string _inputAmountText;
         [ObservableProperty] private DateTimeOffset _inputDate = DateTimeOffset.Now;
-        [ObservableProperty] private int _selectedTypeIndex = 0;
+        [ObservableProperty] private int _selectedTypeIndex = 0; // 0 = Income, 1 = Expense
 
         // --- DATA ---
         public ObservableCollection<Transaction> Transactions { get; } = new();
         public ObservableCollection<ChartDataPoint> SalesChartData { get; } = new();
 
+        // --- FITUR BARU: PICK FROM INGREDIENTS ---
+        public ObservableCollection<Ingredient> IngredientsList { get; } = new();
+
         public ReportsViewModel()
         {
             _dbContext = new AppDbContext();
-            // Load data dari database saat aplikasi dibuka
-            LoadDataFromDb();
+            // Load data async (fire and forget di constructor aman untuk viewmodel top-level)
+            _ = LoadDataAsync();
         }
 
-        private void LoadDataFromDb()
+        public async Task LoadDataAsync()
         {
-            // Pastikan database dan tabel ada
-            _dbContext.Database.EnsureCreated();
+            await _dbContext.Database.EnsureCreatedAsync();
 
+            // 1. Load Transaksi
             Transactions.Clear();
-            // Ambil dari DB, urutkan dari yang terbaru
-            var dbData = _dbContext.Transactions.OrderByDescending(t => t.Date).ToList();
-
+            var dbData = await _dbContext.Transactions.OrderByDescending(t => t.Date).ToListAsync();
             foreach (var item in dbData)
             {
                 Transactions.Add(item);
             }
 
+            // 2. Load Bahan Baku untuk Picker
+            IngredientsList.Clear();
+            var ingData = await _dbContext.Ingredients.AsNoTracking().OrderBy(i => i.Name).ToListAsync();
+            foreach (var item in ingData)
+            {
+                IngredientsList.Add(item);
+            }
+
             RecalculateTotals();
         }
 
+        // Command ini dipanggil saat item di list bahan baku diklik
         [RelayCommand]
-        private void AddTransaction()
+        private void PickIngredient(Ingredient item)
+        {
+            if (item == null) return;
+
+            // Otomatis isi Form
+            InputNote = $"Belanja {item.Name}"; // Contoh: "Belanja Tepung Terigu"
+            InputAmountText = item.PricePerPackage.ToString("F0"); // Harga per kemasan
+            SelectedTypeIndex = 1; // Otomatis set ke "Expense" / Pengeluaran
+        }
+
+        [RelayCommand]
+        private async Task AddTransaction()
         {
             if (string.IsNullOrWhiteSpace(InputNote) || string.IsNullOrWhiteSpace(InputAmountText)) return;
             if (!decimal.TryParse(InputAmountText, out decimal amount)) return;
@@ -71,7 +95,7 @@ namespace CostMasterAI.ViewModels
 
             // 2. Simpan ke Database
             _dbContext.Transactions.Add(newTrx);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             // 3. Update UI (Insert di index 0 agar muncul di paling atas)
             Transactions.Insert(0, newTrx);
@@ -80,18 +104,19 @@ namespace CostMasterAI.ViewModels
             InputNote = string.Empty;
             InputAmountText = string.Empty;
             InputDate = DateTimeOffset.Now;
+            // SelectedTypeIndex tidak direset agar user bisa input banyak expense sekaligus
 
             RecalculateTotals();
         }
 
         [RelayCommand]
-        private void DeleteTransaction(Transaction trx)
+        private async Task DeleteTransaction(Transaction trx)
         {
             if (trx == null) return;
 
             // Hapus dari Database
             _dbContext.Transactions.Remove(trx);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             // Hapus dari UI
             Transactions.Remove(trx);
@@ -153,11 +178,10 @@ namespace CostMasterAI.ViewModels
         }
 
         [RelayCommand]
-        private void LoadDummyData()
+        private async Task LoadDummyData()
         {
-            // Method kosong untuk mencegah error binding di XAML jika tombol Filter ditekan
-            // (Nanti bisa diisi logic filter tanggal database)
-            LoadDataFromDb();
+            // Tombol refresh memanggil ulang load data
+            await LoadDataAsync();
         }
 
         [RelayCommand]

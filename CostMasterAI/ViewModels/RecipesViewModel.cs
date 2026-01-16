@@ -2,6 +2,8 @@
 using CommunityToolkit.Mvvm.Input;
 using CostMasterAI.Services;
 using CostMasterAI.Helpers;
+using CostMasterAI.Core.Services;
+using CostMasterAI.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -34,11 +36,9 @@ namespace CostMasterAI.ViewModels
         [NotifyPropertyChangedFor(nameof(RecommendedPriceMargin))]
         [NotifyPropertyChangedFor(nameof(RecommendedPriceMarkup))]
         [NotifyPropertyChangedFor(nameof(TotalMainDoughWeight))]
-        // Update Analisa saat Resep/Biaya berubah
         [NotifyPropertyChangedFor(nameof(EstimatedProfitPerUnit))]
         [NotifyPropertyChangedFor(nameof(EstimatedProfitPerBatch))]
         [NotifyPropertyChangedFor(nameof(BreakEvenPointQty))]
-        // Update Lists saat Resep Berubah
         [NotifyPropertyChangedFor(nameof(MainIngredients))]
         [NotifyPropertyChangedFor(nameof(SupportIngredients))]
         [NotifyPropertyChangedFor(nameof(PackagingItems))]
@@ -59,14 +59,14 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private double _targetFlourQty;
 
         // --- PROPERTIES BARU UNTUK INPUT KATEGORI & PER PCS ---
-        [ObservableProperty] private string _selectedCategoryToAdd = "Bahan Utama";
+        [ObservableProperty] private string _selectedCategoryToAdd = "Main";
         [ObservableProperty] private bool _isInputPerPiece;
 
         public List<string> RecipeCategories { get; } = new()
         {
-            "Bahan Utama",   // Adonan Dough
-            "Bahan Penolong", // Topping, Minyak, Filling
-            "Kemasan"        // Dus, Plastik
+            "Main",      // Bahan Utama
+            "Support",   // Bahan Penolong
+            "Packaging"  // Kemasan
         };
 
         // --- ADVANCED ANALYSIS PROPERTIES ---
@@ -99,7 +99,7 @@ namespace CostMasterAI.ViewModels
                 decimal preTaxPrice = FinalHppPerUnit / marginFactor;
                 decimal taxAmount = preTaxPrice * (decimal)(TaxPercent / 100.0);
 
-                _manualSellingPriceInput = RoundUpToNearestHundred(preTaxPrice + taxAmount);
+                _manualSellingPriceInput = RoundUpToNearestHundred(preTaxPrice + taxAmount).ToString("F0");
                 OnPropertyChanged(nameof(ManualSellingPriceInput));
             }
         }
@@ -116,17 +116,17 @@ namespace CostMasterAI.ViewModels
 
         // 4. Manual Selling Price
         [ObservableProperty]
-        private decimal _manualSellingPriceInput;
+        private string _manualSellingPriceInput = "0";
 
         [RelayCommand]
         private void RecalculateMarginFromPrice()
         {
-            if (ManualSellingPriceInput <= 0 || FinalHppPerUnit <= 0) return;
+            if (!decimal.TryParse(ManualSellingPriceInput, out decimal price) || price <= 0 || FinalHppPerUnit <= 0) return;
 
             _isUpdatingFromPrice = true;
 
             decimal taxFactor = 1 + (decimal)(TaxPercent / 100.0);
-            decimal cleanPrice = ManualSellingPriceInput / taxFactor;
+            decimal cleanPrice = price / taxFactor;
 
             if (cleanPrice > 0)
             {
@@ -153,9 +153,9 @@ namespace CostMasterAI.ViewModels
         }
 
         // --- UPDATED GROUPING LISTS ---
-        public IEnumerable<RecipeItem> MainIngredients => _selectedRecipe?.Items.Where(i => i.UsageCategory == "Bahan Utama") ?? Enumerable.Empty<RecipeItem>();
-        public IEnumerable<RecipeItem> SupportIngredients => _selectedRecipe?.Items.Where(i => i.UsageCategory == "Bahan Penolong") ?? Enumerable.Empty<RecipeItem>();
-        public IEnumerable<RecipeItem> PackagingItems => _selectedRecipe?.Items.Where(i => i.UsageCategory == "Kemasan") ?? Enumerable.Empty<RecipeItem>();
+        public IEnumerable<RecipeItem> MainIngredients => _selectedRecipe?.Items.Where(i => i.UsageCategory == "Main") ?? Enumerable.Empty<RecipeItem>();
+        public IEnumerable<RecipeItem> SupportIngredients => _selectedRecipe?.Items.Where(i => i.UsageCategory == "Support") ?? Enumerable.Empty<RecipeItem>();
+        public IEnumerable<RecipeItem> PackagingItems => _selectedRecipe?.Items.Where(i => i.UsageCategory == "Packaging") ?? Enumerable.Empty<RecipeItem>();
 
         // Calculated Properties
         public decimal DoughCost => MainIngredients.Sum(i => i.CalculatedCost);
@@ -163,7 +163,6 @@ namespace CostMasterAI.ViewModels
         public decimal PackagingCost => PackagingItems.Sum(i => i.CalculatedCost);
         public decimal OperationalCost => (SelectedRecipe?.TotalOverheadCost ?? 0) + (SelectedRecipe?.TotalLaborCost ?? 0);
 
-        // --- TOTAL BERAT ADONAN ---
         public double TotalMainDoughWeight
         {
             get
@@ -220,15 +219,16 @@ namespace CostMasterAI.ViewModels
             }
         }
 
-        public decimal RecommendedSellingPrice => ManualSellingPriceInput;
+        public decimal RecommendedSellingPrice => decimal.TryParse(ManualSellingPriceInput, out var val) ? val : 0;
 
         public decimal EstimatedProfitPerUnit
         {
             get
             {
                 if (FinalHppPerUnit <= 0) return 0;
+                decimal currentPrice = decimal.TryParse(ManualSellingPriceInput, out var val) ? val : 0;
                 decimal taxFactor = 1 + (decimal)(TaxPercent / 100.0);
-                decimal cleanPrice = ManualSellingPriceInput / taxFactor;
+                decimal cleanPrice = currentPrice / taxFactor;
                 return cleanPrice - FinalHppPerUnit;
             }
         }
@@ -247,7 +247,8 @@ namespace CostMasterAI.ViewModels
             get
             {
                 if (EstimatedProfitPerUnit <= 0) return 0;
-                return (int)Math.Ceiling(FinalHppBatch / (ManualSellingPriceInput > 0 ? ManualSellingPriceInput : 1));
+                decimal currentPrice = decimal.TryParse(ManualSellingPriceInput, out var val) ? val : 1;
+                return (int)Math.Ceiling(FinalHppBatch / (currentPrice > 0 ? currentPrice : 1));
             }
         }
 
@@ -267,47 +268,50 @@ namespace CostMasterAI.ViewModels
             decimal baseOps = OperationalCost;
             decimal totalBase = baseDough + baseTopping + basePack + baseOps;
 
+            // Kalkulasi Risiko & Waste
             decimal wasteValue = totalBase * (decimal)(WasteBufferPercent / 100.0);
             decimal totalWithWaste = totalBase + wasteValue;
 
+            // Kalkulasi HPP per Unit
             decimal hppUnit = 0;
             if (SelectedRecipe.YieldQty > 0)
-                hppUnit = totalWithWaste / SelectedRecipe.YieldQty;
+                hppUnit = totalWithWaste / (decimal)SelectedRecipe.YieldQty;
 
-            decimal currentPrice = ManualSellingPriceInput;
+            // Analisa Harga Jual & Pajak
+            decimal currentPrice = decimal.TryParse(ManualSellingPriceInput, out var p) ? p : 0;
             decimal taxFactor = 1 + (decimal)(TaxPercent / 100.0);
             decimal pricePreTax = currentPrice / taxFactor;
             decimal taxValue = currentPrice - pricePreTax;
             decimal profitValue = pricePreTax - hppUnit;
 
             sb.AppendLine("=== 1. STRUKTUR BIAYA DASAR (BATCH) ===");
-            sb.AppendLine($"• Adonan\t: {baseDough:C0}");
-            sb.AppendLine($"• Topping\t: {baseTopping:C0}");
-            sb.AppendLine($"• Kemasan\t: {basePack:C0}");
-            sb.AppendLine($"• Overhead\t: {baseOps:C0}");
+            sb.AppendLine($"• Adonan\t: Rp {baseDough:N0}");
+            sb.AppendLine($"• Topping\t: Rp {baseTopping:N0}");
+            sb.AppendLine($"• Kemasan\t: Rp {basePack:N0}");
+            sb.AppendLine($"• Overhead\t: Rp {baseOps:N0}");
             sb.AppendLine($"----------------------------------------");
-            sb.AppendLine($"TOTAL MODAL AWAL\t: {totalBase:C0}");
+            sb.AppendLine($"TOTAL MODAL AWAL\t: Rp {totalBase:N0}");
             sb.AppendLine();
 
             sb.AppendLine($"=== 2. RISIKO & WASTE ({WasteBufferPercent}%) ===");
-            sb.AppendLine($"• Estimasi Buang\t: {wasteValue:C0}");
+            sb.AppendLine($"• Estimasi Buang\t: Rp {wasteValue:N0}");
             sb.AppendLine($"----------------------------------------");
-            sb.AppendLine($"MODAL SETELAH WASTE\t: {totalWithWaste:C0}");
+            sb.AppendLine($"MODAL SETELAH WASTE\t: Rp {totalWithWaste:N0}");
             sb.AppendLine();
 
             sb.AppendLine("=== 3. HARGA POKOK (HPP) ===");
             sb.AppendLine($"• Total Modal / {SelectedRecipe.YieldQty} Pcs");
-            sb.AppendLine($"• HPP BERSIH PER PCS\t: {hppUnit:C0}");
+            sb.AppendLine($"• HPP BERSIH PER PCS\t: Rp {hppUnit:N2}");
             sb.AppendLine();
 
             sb.AppendLine($"=== 4. ANALISA HARGA JUAL ===");
-            sb.AppendLine($"• Harga Jual Final\t: {currentPrice:C0}");
-            sb.AppendLine($"• Pajak ({TaxPercent}%)\t: -{taxValue:C0}");
-            sb.AppendLine($"• Pendapatan Bersih\t: {pricePreTax:C0}");
-            sb.AppendLine($"• HPP per Unit\t: -{hppUnit:C0}");
+            sb.AppendLine($"• Harga Jual Final\t: Rp {currentPrice:N0}");
+            sb.AppendLine($"• Pajak ({TaxPercent}%)\t: -Rp {taxValue:N0}");
+            sb.AppendLine($"• Pendapatan Bersih\t: Rp {pricePreTax:N0}");
+            sb.AppendLine($"• HPP per Unit\t: -Rp {hppUnit:N0}");
             sb.AppendLine($"----------------------------------------");
-            sb.AppendLine($"PROFIT BERSIH\t: {profitValue:C0} / pcs");
-            sb.AppendLine($"MARGIN AKTUAL\t: {TargetMarginPercent:N2}%");
+            sb.AppendLine($"PROFIT BERSIH\t: Rp {profitValue:N0} / pcs");
+            sb.AppendLine($"MARGIN AKTUAL\t: {ProfitMarginDisplay}");
 
             return sb.ToString();
         }
@@ -336,17 +340,25 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private bool _isGeneratingHypnotic;
         [ObservableProperty] private bool _isGeneratingImagePrompt;
 
+        public RecipesViewModel()
+        {
+            _dbContext = new AppDbContext();
+            _aiService = new AIService();
+            _ = LoadDataAsync();
+        }
+
         public RecipesViewModel(AppDbContext dbContext, AIService aiService)
         {
             _dbContext = dbContext;
             _aiService = aiService;
-            LoadDataAsync();
+            _ = LoadDataAsync();
         }
 
-        public async void LoadDataAsync()
+        public async Task LoadDataAsync()
         {
             try
             {
+                await _dbContext.Database.EnsureCreatedAsync();
                 await RefreshIngredientsList();
                 await ReloadRecipesList();
             }
@@ -358,20 +370,27 @@ namespace CostMasterAI.ViewModels
 
         private async Task RefreshIngredientsList()
         {
-            var ingredients = await _dbContext.Ingredients.AsNoTracking().ToListAsync();
             AvailableIngredients.Clear();
+            var ingredients = await _dbContext.Ingredients.AsNoTracking().OrderBy(i => i.Name).ToListAsync();
             foreach (var i in ingredients) AvailableIngredients.Add(i);
         }
 
         private async Task ReloadRecipesList()
         {
+            Recipes.Clear();
+            // Membersihkan tracker untuk mencegah konflik saat reload
+            _dbContext.ChangeTracker.Clear();
+
             var recipes = await _dbContext.Recipes
                 .Include(r => r.Items).ThenInclude(i => i.Ingredient)
                 .Include(r => r.Overheads)
+                .AsNoTracking()
                 .ToListAsync();
 
-            Recipes.Clear();
-            foreach (var r in recipes) Recipes.Add(r);
+            foreach (var r in recipes)
+            {
+                Recipes.Add(r);
+            }
         }
 
         // --- COMMANDS ---
@@ -384,8 +403,14 @@ namespace CostMasterAI.ViewModels
             SelectedRecipe.LastUpdated = DateTime.Now;
             if (SelectedRecipe.TargetMarginPercent > 0)
             {
-                SelectedRecipe.ActualSellingPrice = ManualSellingPriceInput;
+                if (decimal.TryParse(ManualSellingPriceInput, out decimal price))
+                {
+                    SelectedRecipe.ActualSellingPrice = price;
+                }
             }
+
+            // FIX: Bersihkan tracker sebelum update untuk mencegah error "Identity Conflict"
+            _dbContext.ChangeTracker.Clear();
 
             _dbContext.Recipes.Update(SelectedRecipe);
             await _dbContext.SaveChangesAsync();
@@ -397,69 +422,127 @@ namespace CostMasterAI.ViewModels
             await ReloadSelectedRecipe();
         }
 
-        // --- NEW COMMAND: SAVE AS NEW RECIPE ---
+        // --- FITUR BARU: DUPLIKAT & HAPUS ---
+
+        [RelayCommand]
+        private async Task DuplicateRecipeAsync(Recipe? recipe)
+        {
+            var target = recipe ?? SelectedRecipe;
+            if (target == null) return;
+
+            try
+            {
+                // Bersihkan tracker sebelum query
+                _dbContext.ChangeTracker.Clear();
+
+                var source = await _dbContext.Recipes
+                    .Include(r => r.Items)
+                    .Include(r => r.Overheads)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Id == target.Id);
+
+                if (source == null) return;
+
+                var newRecipe = new Recipe
+                {
+                    Name = $"{source.Name} (Copy)",
+                    Description = source.Description,
+                    YieldQty = source.YieldQty,
+                    TargetPortionSize = source.TargetPortionSize,
+                    CookingLossPercent = source.CookingLossPercent,
+                    LaborMinutes = source.LaborMinutes,
+                    PrepMinutes = source.PrepMinutes,
+                    ShelfLife = source.ShelfLife,
+                    Version = "1.0",
+                    IsSubRecipe = source.IsSubRecipe,
+                    TargetMarginPercent = source.TargetMarginPercent,
+                    LastUpdated = DateTime.Now
+                };
+
+                _dbContext.Recipes.Add(newRecipe);
+                await _dbContext.SaveChangesAsync();
+
+                foreach (var item in source.Items)
+                {
+                    _dbContext.RecipeItems.Add(new RecipeItem
+                    {
+                        RecipeId = newRecipe.Id,
+                        IngredientId = item.IngredientId,
+                        UsageQty = item.UsageQty,
+                        UsageUnit = item.UsageUnit,
+                        UsageCategory = item.UsageCategory,
+                        IsPerPiece = item.IsPerPiece
+                    });
+                }
+
+                foreach (var ov in source.Overheads)
+                {
+                    _dbContext.RecipeOverheads.Add(new RecipeOverhead
+                    {
+                        RecipeId = newRecipe.Id,
+                        Name = ov.Name,
+                        Cost = ov.Cost
+                    });
+                }
+
+                await _dbContext.SaveChangesAsync();
+
+                Recipes.Add(newRecipe);
+                SelectedRecipe = newRecipe;
+
+                await ReloadSelectedRecipe();
+                await SyncSubRecipeToIngredients(SelectedRecipe);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error Duplicate: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        private async Task DeleteRecipeAsync(Recipe? recipe)
+        {
+            var target = recipe ?? SelectedRecipe;
+            if (target == null) return;
+
+            try
+            {
+                // FIX: Bersihkan tracker sebelum delete
+                _dbContext.ChangeTracker.Clear();
+
+                var entry = await _dbContext.Recipes.FindAsync(target.Id);
+                if (entry != null)
+                {
+                    _dbContext.Recipes.Remove(entry);
+
+                    var items = _dbContext.RecipeItems.Where(ri => ri.RecipeId == target.Id);
+                    _dbContext.RecipeItems.RemoveRange(items);
+
+                    var overheads = _dbContext.RecipeOverheads.Where(ro => ro.RecipeId == target.Id);
+                    _dbContext.RecipeOverheads.RemoveRange(overheads);
+
+                    await _dbContext.SaveChangesAsync();
+                }
+
+                if (Recipes.Contains(target)) Recipes.Remove(target);
+
+                if (SelectedRecipe == target)
+                {
+                    SelectedRecipe = null;
+                    TargetScalingQty = 0;
+                    ManualSellingPriceInput = "0";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Gagal menghapus resep: {ex.Message}");
+            }
+        }
+
         [RelayCommand]
         private async Task SaveAsNewRecipeAsync()
         {
-            if (SelectedRecipe == null) return;
-
-            // 1. Clone Header
-            var newRecipe = new Recipe
-            {
-                Name = $"{SelectedRecipe.Name} (Copy)",
-                Description = SelectedRecipe.Description,
-                YieldQty = SelectedRecipe.YieldQty,
-                TargetPortionSize = SelectedRecipe.TargetPortionSize,
-                CookingLossPercent = SelectedRecipe.CookingLossPercent,
-                LaborMinutes = SelectedRecipe.LaborMinutes,
-                PrepMinutes = SelectedRecipe.PrepMinutes,
-                ShelfLife = SelectedRecipe.ShelfLife,
-                Version = "1.0",
-                IsSubRecipe = SelectedRecipe.IsSubRecipe,
-                TargetMarginPercent = SelectedRecipe.TargetMarginPercent,
-                LastUpdated = DateTime.Now
-            };
-
-            _dbContext.Recipes.Add(newRecipe);
-            await _dbContext.SaveChangesAsync(); // Save to get ID
-
-            // 2. Clone Items (Ingredients)
-            foreach (var item in SelectedRecipe.Items)
-            {
-                var newItem = new RecipeItem
-                {
-                    RecipeId = newRecipe.Id,
-                    IngredientId = item.IngredientId,
-                    UsageQty = item.UsageQty,
-                    UsageUnit = item.UsageUnit,
-                    UsageCategory = item.UsageCategory,
-                    IsUnitBased = item.IsUnitBased,
-                    IsPerPiece = item.IsPerPiece
-                };
-                _dbContext.RecipeItems.Add(newItem);
-            }
-
-            // 3. Clone Overheads
-            foreach (var ov in SelectedRecipe.Overheads)
-            {
-                var newOv = new RecipeOverhead
-                {
-                    RecipeId = newRecipe.Id,
-                    Name = ov.Name,
-                    Cost = ov.Cost
-                };
-                _dbContext.RecipeOverheads.Add(newOv);
-            }
-
-            await _dbContext.SaveChangesAsync();
-
-            // 4. Update UI
-            Recipes.Add(newRecipe);
-            SelectedRecipe = newRecipe; // Switch to new recipe
-
-            // Trigger recalculation
-            await ReloadSelectedRecipe();
-            await SyncSubRecipeToIngredients(SelectedRecipe);
+            await DuplicateRecipeAsync(SelectedRecipe);
         }
 
         private void NotifyRecalculation()
@@ -472,10 +555,9 @@ namespace CostMasterAI.ViewModels
             OnPropertyChanged(nameof(FinalHppPerUnit));
             OnPropertyChanged(nameof(TotalMainDoughWeight));
 
-            // Initialize Flour Target
             if (MainIngredients != null)
             {
-                var flour = MainIngredients.FirstOrDefault(i => i.Ingredient.Name.Contains("Tepung", StringComparison.OrdinalIgnoreCase) || i.Ingredient.Name.Contains("Terigu", StringComparison.OrdinalIgnoreCase));
+                var flour = MainIngredients.FirstOrDefault(i => i.Ingredient != null && (i.Ingredient.Name.Contains("Tepung", StringComparison.OrdinalIgnoreCase) || i.Ingredient.Name.Contains("Terigu", StringComparison.OrdinalIgnoreCase)));
                 if (flour != null)
                 {
                     _targetFlourQty = flour.UsageQty;
@@ -483,13 +565,19 @@ namespace CostMasterAI.ViewModels
                 }
             }
 
-            if (FinalHppPerUnit > 0 && ManualSellingPriceInput == 0)
+            if (FinalHppPerUnit > 0)
             {
-                OnTargetMarginPercentChanged(TargetMarginPercent);
-            }
-            else if (FinalHppPerUnit > 0 && ManualSellingPriceInput > 0)
-            {
-                RecalculateMarginFromPrice();
+                decimal currentPrice = 0;
+                decimal.TryParse(ManualSellingPriceInput, out currentPrice);
+
+                if (currentPrice == 0)
+                {
+                    OnTargetMarginPercentChanged(TargetMarginPercent);
+                }
+                else
+                {
+                    RecalculateMarginFromPrice();
+                }
             }
 
             OnPropertyChanged(nameof(ManualSellingPriceInput));
@@ -510,23 +598,16 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null || TargetScalingQty <= 0) return;
             double ratio = (double)TargetScalingQty / SelectedRecipe.YieldQty;
 
+            // FIX: Clear tracker before scale updates
+            _dbContext.ChangeTracker.Clear();
+
             foreach (var item in SelectedRecipe.Items)
             {
-                if (!item.IsPerPiece && !item.IsUnitBased)
+                if (!item.IsPerPiece)
                 {
-                    item.UsageQty = item.UsageQty * ratio;
+                    item.UsageQty *= ratio;
+                    _dbContext.RecipeItems.Update(item);
                 }
-            }
-
-            if (ratio > 1)
-            {
-                SelectedRecipe.LaborMinutes = SelectedRecipe.LaborMinutes * ratio * 0.8;
-                SelectedRecipe.PrepMinutes = (int)(SelectedRecipe.PrepMinutes * ratio * 0.8);
-            }
-            else
-            {
-                SelectedRecipe.LaborMinutes = SelectedRecipe.LaborMinutes * ratio;
-                SelectedRecipe.PrepMinutes = (int)(SelectedRecipe.PrepMinutes * ratio);
             }
 
             SelectedRecipe.YieldQty = TargetScalingQty;
@@ -542,55 +623,39 @@ namespace CostMasterAI.ViewModels
         {
             if (SelectedRecipe == null || TargetFlourQty <= 0) return;
 
-            // 1. Coba Cari Bahan dengan nama "Tepung" atau "Terigu" di Bahan Utama
             var flourItem = MainIngredients.FirstOrDefault(i =>
                 i.Ingredient.Name.Contains("Tepung", StringComparison.OrdinalIgnoreCase) ||
                 i.Ingredient.Name.Contains("Terigu", StringComparison.OrdinalIgnoreCase) ||
                 i.Ingredient.Name.Contains("Flour", StringComparison.OrdinalIgnoreCase));
 
-            // 2. FALLBACK: Jika tidak ada yang namanya "Tepung", ambil bahan dengan Qty TERBESAR di kategori utama
-            // (Asumsi: Dalam baking, tepung selalu porsinya paling besar)
             if (flourItem == null && MainIngredients.Any())
-            {
                 flourItem = MainIngredients.OrderByDescending(i => i.UsageQty).First();
-            }
 
-            // Jika masih tidak ketemu juga, batalkan
             if (flourItem == null || flourItem.UsageQty <= 0) return;
 
-            // 3. Hitung Ratio Kenaikan (Misal Lama 1000g -> Baru 1500g, ratio = 1.5)
             double ratio = TargetFlourQty / flourItem.UsageQty;
-
-            // Cegah kalkulasi jika tidak ada perubahan atau ratio aneh
             if (ratio == 1 || ratio <= 0) return;
 
-            // 4. Kalikan semua item di Bahan Utama (Kecuali yang Per Pcs)
+            // FIX: Clear tracker
+            _dbContext.ChangeTracker.Clear();
+
             foreach (var item in MainIngredients)
             {
-                // Hanya scale yang SATUANNYA BERAT/VOLUME.
-                // Item unit based (misal: 2 butir telur) opsional mau di scale atau tidak. 
-                // Di sini kita scale juga kecuali dia ditandai UnitBased eksplisit di UI (fitur masa depan).
-
                 if (!item.IsPerPiece)
                 {
-                    item.UsageQty = item.UsageQty * ratio;
+                    item.UsageQty *= ratio;
+                    _dbContext.RecipeItems.Update(item);
                 }
             }
 
-            // 5. Update Yield (Otomatis naik karena adonan naik)
-            // Asumsi: Yield berbanding lurus dengan total adonan
             SelectedRecipe.YieldQty = (int)Math.Round(SelectedRecipe.YieldQty * ratio);
             if (SelectedRecipe.YieldQty < 1) SelectedRecipe.YieldQty = 1;
 
-            // 6. Simpan ke Database
             _dbContext.Recipes.Update(SelectedRecipe);
             await _dbContext.SaveChangesAsync();
 
-            // 7. Refresh UI & Total Weight
             await SyncSubRecipeToIngredients(SelectedRecipe);
             await ReloadSelectedRecipe();
-
-            // 8. Update Target Simulator scaling juga biar sinkron
             TargetScalingQty = SelectedRecipe.YieldQty;
         }
 
@@ -605,9 +670,14 @@ namespace CostMasterAI.ViewModels
                 double netMass = totalRawMass * lossFactor;
                 int newYield = (int)(netMass / SelectedRecipe.TargetPortionSize);
                 if (newYield < 1) newYield = 1;
+
+                // FIX: Clear tracker
+                _dbContext.ChangeTracker.Clear();
+
                 SelectedRecipe.YieldQty = newYield;
                 _dbContext.Recipes.Update(SelectedRecipe);
                 await _dbContext.SaveChangesAsync();
+
                 await SyncSubRecipeToIngredients(SelectedRecipe);
                 await ReloadSelectedRecipe();
             }
@@ -619,13 +689,15 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null || SelectedIngredientToAdd == null) return;
             if (double.TryParse(UsageQtyInput, out var qty) && qty > 0)
             {
+                // FIX: Clear tracker to ensure fresh insert
+                _dbContext.ChangeTracker.Clear();
+
                 var newItem = new RecipeItem
                 {
                     RecipeId = SelectedRecipe.Id,
                     IngredientId = SelectedIngredientToAdd.Id,
                     UsageQty = qty,
                     UsageUnit = SelectedUsageUnit,
-                    IsUnitBased = false,
                     UsageCategory = SelectedCategoryToAdd,
                     IsPerPiece = IsInputPerPiece
                 };
@@ -641,6 +713,10 @@ namespace CostMasterAI.ViewModels
         private async Task RemoveItemFromRecipeAsync(RecipeItem? item)
         {
             if (item == null) return;
+
+            // FIX: Clear tracker
+            _dbContext.ChangeTracker.Clear();
+
             _dbContext.RecipeItems.Remove(item);
             await _dbContext.SaveChangesAsync();
             await ReloadSelectedRecipe();
@@ -653,6 +729,9 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null || string.IsNullOrWhiteSpace(NewOverheadName)) return;
             if (decimal.TryParse(NewOverheadCost, out var cost) && cost > 0 && double.TryParse(UsageCycles, out var cycles) && cycles > 0)
             {
+                // FIX: Clear tracker
+                _dbContext.ChangeTracker.Clear();
+
                 decimal finalCost = cost / (decimal)cycles;
                 var overhead = new RecipeOverhead { RecipeId = SelectedRecipe.Id, Name = NewOverheadName + (cycles > 1 ? $" (1/{cycles} siklus)" : ""), Cost = finalCost };
                 _dbContext.RecipeOverheads.Add(overhead);
@@ -667,17 +746,11 @@ namespace CostMasterAI.ViewModels
         private async Task RemoveOverheadAsync(RecipeOverhead? item)
         {
             if (item == null) return;
-            _dbContext.RecipeOverheads.Remove(item);
-            await _dbContext.SaveChangesAsync();
-            await ReloadSelectedRecipe();
-            if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
-        }
 
-        [RelayCommand]
-        private async Task ToggleItemUnitBasedAsync(RecipeItem item)
-        {
-            if (item == null) return;
-            _dbContext.RecipeItems.Update(item);
+            // FIX: Clear tracker
+            _dbContext.ChangeTracker.Clear();
+
+            _dbContext.RecipeOverheads.Remove(item);
             await _dbContext.SaveChangesAsync();
             await ReloadSelectedRecipe();
             if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
@@ -687,6 +760,10 @@ namespace CostMasterAI.ViewModels
         private async Task CreateRecipeAsync()
         {
             if (string.IsNullOrWhiteSpace(NewRecipeName)) return;
+
+            // FIX: Clear tracker
+            _dbContext.ChangeTracker.Clear();
+
             var newRecipe = new Recipe { Name = NewRecipeName, YieldQty = 1, Version = "1.0", LastUpdated = DateTime.Now };
             _dbContext.Recipes.Add(newRecipe);
             await _dbContext.SaveChangesAsync();
@@ -695,20 +772,28 @@ namespace CostMasterAI.ViewModels
             NewRecipeName = "";
         }
 
-        // --- COMMANDS: AI FEATURES (SAMA) ---
+        // --- AI FEATURES ---
         [RelayCommand]
         private async Task GenerateDescriptionAsync()
         {
             if (SelectedRecipe == null) return;
             IsAiLoading = true;
-            var sb = new StringBuilder();
-            foreach (var item in SelectedRecipe.Items) sb.Append($"{item.Ingredient.Name} ({item.UsageQty} {item.UsageUnit}), ");
-            var result = await _aiService.GenerateMarketingCopyAsync(SelectedRecipe.Name, sb.ToString().TrimEnd(',', ' '));
-            SelectedRecipe.Description = result;
-            _dbContext.Recipes.Update(SelectedRecipe);
-            await _dbContext.SaveChangesAsync();
-            OnPropertyChanged(nameof(SelectedRecipe));
-            IsAiLoading = false;
+            try
+            {
+                var sb = new StringBuilder();
+                foreach (var item in SelectedRecipe.Items) sb.Append($"{item.Ingredient?.Name} ({item.UsageQty} {item.UsageUnit}), ");
+                var result = await _aiService.GenerateMarketingCopyAsync(SelectedRecipe.Name, sb.ToString().TrimEnd(',', ' '));
+
+                // FIX: Clear tracker
+                _dbContext.ChangeTracker.Clear();
+
+                SelectedRecipe.Description = result;
+                _dbContext.Recipes.Update(SelectedRecipe);
+                await _dbContext.SaveChangesAsync();
+                OnPropertyChanged(nameof(SelectedRecipe));
+            }
+            catch { }
+            finally { IsAiLoading = false; }
         }
 
         [RelayCommand]
@@ -725,6 +810,9 @@ namespace CostMasterAI.ViewModels
                     var aiItems = JsonSerializer.Deserialize<List<AiRecipeData>>(jsonResult, options);
                     if (aiItems != null)
                     {
+                        // FIX: Clear tracker
+                        _dbContext.ChangeTracker.Clear();
+
                         foreach (var item in aiItems)
                         {
                             var existingIngredient = await _dbContext.Ingredients.FirstOrDefaultAsync(i => i.Name.ToLower() == item.IngredientName.ToLower());
@@ -732,13 +820,13 @@ namespace CostMasterAI.ViewModels
                             if (existingIngredient != null) ingredientToUse = existingIngredient;
                             else
                             {
-                                var newIng = new Ingredient { Name = item.IngredientName, PricePerPackage = item.EstimatedPrice, QuantityPerPackage = item.PackageQty, Unit = item.PackageUnit, YieldPercent = 100 };
+                                var newIng = new Ingredient { Name = item.IngredientName, PricePerPackage = item.EstimatedPrice, QuantityPerPackage = item.PackageQty, Unit = item.PackageUnit, YieldPercent = 100, Category = "Auto" };
                                 _dbContext.Ingredients.Add(newIng);
                                 await _dbContext.SaveChangesAsync();
                                 AvailableIngredients.Add(newIng);
                                 ingredientToUse = newIng;
                             }
-                            var recipeItem = new RecipeItem { RecipeId = SelectedRecipe.Id, IngredientId = ingredientToUse.Id, UsageQty = item.UsageQty, UsageUnit = item.UsageUnit };
+                            var recipeItem = new RecipeItem { RecipeId = SelectedRecipe.Id, IngredientId = ingredientToUse.Id, UsageQty = item.UsageQty, UsageUnit = item.UsageUnit, UsageCategory = "Main" };
                             _dbContext.RecipeItems.Add(recipeItem);
                         }
                         await _dbContext.SaveChangesAsync();
@@ -757,18 +845,9 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null) return;
             IsAuditing = true;
             AiAuditReport = "Sedang menganalisa resep...";
-            try
-            {
-                AiAuditReport = await _aiService.AuditRecipeCostAsync(SelectedRecipe);
-            }
-            catch (Exception ex)
-            {
-                AiAuditReport = $"Gagal menghubungi AI: {ex.Message}";
-            }
-            finally
-            {
-                IsAuditing = false;
-            }
+            try { AiAuditReport = await _aiService.AuditRecipeCostAsync(SelectedRecipe); }
+            catch (Exception ex) { AiAuditReport = $"Error: {ex.Message}"; }
+            finally { IsAuditing = false; }
         }
 
         [RelayCommand]
@@ -776,19 +855,10 @@ namespace CostMasterAI.ViewModels
         {
             if (SelectedRecipe == null) return;
             IsSubstituting = true;
-            AiSubstitutionReport = "Sedang mencari alternatif bahan...";
-            try
-            {
-                AiSubstitutionReport = await _aiService.GetSmartSubstitutionsAsync(SelectedRecipe);
-            }
-            catch (Exception ex)
-            {
-                AiSubstitutionReport = $"Gagal menghubungi AI: {ex.Message}";
-            }
-            finally
-            {
-                IsSubstituting = false;
-            }
+            AiSubstitutionReport = "Sedang mencari alternatif...";
+            try { AiSubstitutionReport = await _aiService.GetSmartSubstitutionsAsync(SelectedRecipe); }
+            catch (Exception ex) { AiSubstitutionReport = $"Error: {ex.Message}"; }
+            finally { IsSubstituting = false; }
         }
 
         [RelayCommand]
@@ -796,19 +866,10 @@ namespace CostMasterAI.ViewModels
         {
             if (SelectedRecipe == null) return;
             IsWasteAnalyzing = true;
-            AiWasteReport = "Sedang menganalisa potensi limbah...";
-            try
-            {
-                AiWasteReport = await _aiService.GetWasteReductionIdeasAsync(SelectedRecipe);
-            }
-            catch (Exception ex)
-            {
-                AiWasteReport = $"Gagal menghubungi AI: {ex.Message}";
-            }
-            finally
-            {
-                IsWasteAnalyzing = false;
-            }
+            AiWasteReport = "Sedang menganalisa limbah...";
+            try { AiWasteReport = await _aiService.GetWasteReductionIdeasAsync(SelectedRecipe); }
+            catch (Exception ex) { AiWasteReport = $"Error: {ex.Message}"; }
+            finally { IsWasteAnalyzing = false; }
         }
 
         [RelayCommand]
@@ -816,19 +877,9 @@ namespace CostMasterAI.ViewModels
         {
             if (SelectedRecipe == null) return;
             IsGeneratingSocial = true;
-            AiSocialCaption = "Sedang meracik kata-kata viral...";
-            try
-            {
-                AiSocialCaption = await _aiService.GenerateSocialMediaCaptionAsync(SelectedRecipe, SelectedSocialPlatform, SelectedSocialTone);
-            }
-            catch (Exception ex)
-            {
-                AiSocialCaption = $"Error: {ex.Message}";
-            }
-            finally
-            {
-                IsGeneratingSocial = false;
-            }
+            try { AiSocialCaption = await _aiService.GenerateSocialMediaCaptionAsync(SelectedRecipe, SelectedSocialPlatform, SelectedSocialTone); }
+            catch (Exception ex) { AiSocialCaption = $"Error: {ex.Message}"; }
+            finally { IsGeneratingSocial = false; }
         }
 
         [RelayCommand]
@@ -836,19 +887,9 @@ namespace CostMasterAI.ViewModels
         {
             if (SelectedRecipe == null) return;
             IsGeneratingHypnotic = true;
-            AiHypnoticDesc = "Sedang menyusun kalimat hipnotis...";
-            try
-            {
-                AiHypnoticDesc = await _aiService.GenerateHypnoticDescriptionAsync(SelectedRecipe);
-            }
-            catch (Exception ex)
-            {
-                AiHypnoticDesc = $"Error: {ex.Message}";
-            }
-            finally
-            {
-                IsGeneratingHypnotic = false;
-            }
+            try { AiHypnoticDesc = await _aiService.GenerateHypnoticDescriptionAsync(SelectedRecipe); }
+            catch (Exception ex) { AiHypnoticDesc = $"Error: {ex.Message}"; }
+            finally { IsGeneratingHypnotic = false; }
         }
 
         [RelayCommand]
@@ -856,62 +897,21 @@ namespace CostMasterAI.ViewModels
         {
             if (SelectedRecipe == null) return;
             IsGeneratingImagePrompt = true;
-            AiImagePrompt = "Sedang membayangkan visual terbaik...";
-            try
-            {
-                AiImagePrompt = await _aiService.GenerateImagePromptAsync(SelectedRecipe);
-            }
-            catch (Exception ex)
-            {
-                AiImagePrompt = $"Error: {ex.Message}";
-            }
-            finally
-            {
-                IsGeneratingImagePrompt = false;
-            }
-        }
-
-        [RelayCommand]
-        private async Task DeleteRecipeAsync()
-        {
-            if (SelectedRecipe == null) return;
-
-            try
-            {
-                // 1. Hapus dari Database
-                _dbContext.Recipes.Remove(SelectedRecipe);
-
-                // Hapus juga overhead/items terkait jika cascade delete belum otomatis (opsional, EF Core biasanya handle ini)
-                var relatedItems = _dbContext.RecipeItems.Where(ri => ri.RecipeId == SelectedRecipe.Id);
-                _dbContext.RecipeItems.RemoveRange(relatedItems);
-
-                var relatedOverheads = _dbContext.RecipeOverheads.Where(ro => ro.RecipeId == SelectedRecipe.Id);
-                _dbContext.RecipeOverheads.RemoveRange(relatedOverheads);
-
-                await _dbContext.SaveChangesAsync();
-
-                // 2. Hapus dari List UI
-                Recipes.Remove(SelectedRecipe);
-
-                // 3. Reset Pilihan (Kosongkan UI)
-                SelectedRecipe = null;
-
-                // Reset input dummy agar bersih
-                TargetScalingQty = 0;
-            }
-            catch (Exception ex)
-            {
-                // Jika ingin handle error (misal log ke console)
-                System.Diagnostics.Debug.WriteLine($"Gagal menghapus resep: {ex.Message}");
-            }
+            try { AiImagePrompt = await _aiService.GenerateImagePromptAsync(SelectedRecipe); }
+            catch (Exception ex) { AiImagePrompt = $"Error: {ex.Message}"; }
+            finally { IsGeneratingImagePrompt = false; }
         }
 
         private async Task SyncSubRecipeToIngredients(Recipe recipe)
         {
             if (recipe == null) return;
 
-            var linkedIngredient = await _dbContext.Ingredients
-                .FirstOrDefaultAsync(i => i.LinkedRecipeId == recipe.Id);
+            // Perlu clear tracker lagi di sini? Tergantung apakah dipanggil setelah saveChanges.
+            // Karena method ini dipanggil SETELAH save, aman. Tapi untuk query 'FirstOrDefaultAsync',
+            // sebaiknya kita query fresh.
+            _dbContext.ChangeTracker.Clear();
+
+            var linkedIngredient = await _dbContext.Ingredients.FirstOrDefaultAsync(i => i.LinkedRecipeId == recipe.Id);
 
             if (recipe.IsSubRecipe)
             {
@@ -920,13 +920,11 @@ namespace CostMasterAI.ViewModels
                     linkedIngredient = new Ingredient { LinkedRecipeId = recipe.Id, Category = "Sub-Recipe" };
                     _dbContext.Ingredients.Add(linkedIngredient);
                 }
-
                 linkedIngredient.Name = $"[Resep] {recipe.Name}";
                 linkedIngredient.PricePerPackage = FinalHppPerUnit;
                 linkedIngredient.QuantityPerPackage = 1;
                 linkedIngredient.Unit = "Porsi";
                 linkedIngredient.YieldPercent = 100;
-
                 await _dbContext.SaveChangesAsync();
             }
             else
@@ -937,7 +935,6 @@ namespace CostMasterAI.ViewModels
                     await _dbContext.SaveChangesAsync();
                 }
             }
-
             await RefreshIngredientsList();
         }
 
@@ -950,7 +947,10 @@ namespace CostMasterAI.ViewModels
         {
             if (SelectedRecipe == null) return;
             var id = SelectedRecipe.Id;
+
+            // FIX: Clear tracker wajib di sini sebelum reload fresh data
             _dbContext.ChangeTracker.Clear();
+
             var updatedRecipe = await _dbContext.Recipes
                 .Include(r => r.Items).ThenInclude(i => i.Ingredient)
                 .Include(r => r.Overheads)
@@ -959,12 +959,23 @@ namespace CostMasterAI.ViewModels
 
             if (updatedRecipe != null)
             {
+                // Attach kembali agar bisa di-update nanti
                 _dbContext.Attach(updatedRecipe);
+
                 var index = -1;
                 for (int i = 0; i < Recipes.Count; i++) { if (Recipes[i].Id == id) { index = i; break; } }
                 if (index != -1) { Recipes[index] = updatedRecipe; SelectedRecipe = updatedRecipe; }
                 TargetScalingQty = updatedRecipe.YieldQty;
                 NotifyRecalculation();
+            }
+        }
+
+        // Handler untuk TextBox Harga
+        public void OnPriceBoxKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+        {
+            if (e.Key == Windows.System.VirtualKey.Enter)
+            {
+                _ = UpdateRecipeDetailsAsync();
             }
         }
     }

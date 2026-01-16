@@ -63,6 +63,14 @@
     </Page.Resources>
 
     <ScrollViewer Background="{ThemeResource AppBackgroundBrush}" UseLayoutRounding="True">
+
+        <ScrollViewer.ContextFlyout>
+            <MenuFlyout>
+                <MenuFlyoutItem Text="Refresh Dashboard" Icon="Refresh" 
+                                Command="{Binding LoadDashboardDataCommand}"/>
+            </MenuFlyout>
+        </ScrollViewer.ContextFlyout>
+
         <Grid Padding="40">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
