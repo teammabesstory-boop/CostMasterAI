@@ -46,7 +46,7 @@ namespace CostMasterAI
                 db.Database.EnsureCreated();
             }
 
-            m_window = new MainWindow();
+            m_window = new CostMasterAI.Views.MainWindow();
 
             // Assign instance window ke properti static
             MainWindow = m_window;

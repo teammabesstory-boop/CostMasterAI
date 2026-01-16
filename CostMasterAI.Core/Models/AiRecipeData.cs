@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace CostMasterAI.Models
+namespace CostMasterAI.Core.Models
 {
     // Class ini cuma buat nampung respon JSON dari AI
     public class AiRecipeData

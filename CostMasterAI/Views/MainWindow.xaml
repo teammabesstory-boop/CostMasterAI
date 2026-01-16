@@ -6,11 +6,10 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid Background="{ThemeResource AppBackgroundBrush}">
 
         <Grid.Resources>
             <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
-
             <FontFamily x:Key="AppFont">/Assets/Satoshi-Regular.otf#Satoshi</FontFamily>
             <FontFamily x:Key="AppFontMedium">/Assets/Satoshi-Medium.otf#Satoshi</FontFamily>
             <FontFamily x:Key="AppFontBold">/Assets/Satoshi-Bold.otf#Satoshi</FontFamily>
@@ -18,7 +17,7 @@
             <Style TargetType="NavigationViewItem">
                 <Setter Property="FontFamily" Value="{StaticResource AppFontMedium}"/>
                 <Setter Property="FontSize" Value="16"/>
-                <Setter Property="Foreground" Value="#374151"/>
+                <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
                 <Setter Property="Margin" Value="0,6"/>
             </Style>
 
@@ -37,16 +36,22 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <StackPanel Orientation="Horizontal" Spacing="12" Padding="24,0,0,0" VerticalAlignment="Center">
                 <Image Source="/Assets/Square44x44Logo.targetsize-24_altform-unplated.png" Width="24" Height="24"/>
-                <TextBlock Text="CostMaster AI" FontSize="14" FontFamily="{StaticResource AppFontBold}" Opacity="0.9" VerticalAlignment="Center"/>
+                <TextBlock Text="CostMaster AI" FontSize="14" FontFamily="{StaticResource AppFontBold}" Opacity="0.9" VerticalAlignment="Center" Foreground="{ThemeResource TextPrimaryBrush}"/>
 
-                <Border Background="#10000000" CornerRadius="6" Padding="8,4" Margin="8,0,0,0">
-                    <TextBlock Text="BETA" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="#555"/>
+                <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="6" Padding="8,4" Margin="8,0,0,0">
+                    <TextBlock Text="BETA" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}"/>
                 </Border>
             </StackPanel>
+
+            <Button Grid.Column="2" Click="ToggleThemeButton_Click" Background="Transparent" BorderThickness="0" Margin="0,0,140,0">
+                <FontIcon x:Name="ThemeIcon" FontFamily="{StaticResource RemixIcon}" Glyph="&#xEF56;" FontSize="20" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                <ToolTipService.ToolTip>Switch Theme</ToolTipService.ToolTip>
+            </Button>
         </Grid>
 
         <NavigationView x:Name="NavView" 
@@ -56,6 +61,7 @@
                         SelectionChanged="NavView_SelectionChanged"
                         Loaded="NavView_Loaded"
                         OpenPaneLength="280">
+
             <NavigationView.MenuItems>
                 <NavigationViewItem Tag="dashboard" Content="Dashboard">
                     <NavigationViewItem.Icon>
@@ -80,6 +86,12 @@
                         <FontIcon Glyph="&#xF11E;" Style="{StaticResource NavIconStyle}"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+
+                <NavigationViewItem Tag="reports" Content="Laporan (Reports)">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xEC7A;" Style="{StaticResource NavIconStyle}"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
 
             <NavigationView.FooterMenuItems>
@@ -90,7 +102,7 @@
                 </NavigationViewItem>
             </NavigationView.FooterMenuItems>
 
-            <Frame x:Name="ContentFrame" Background="{StaticResource AppBackgroundBrush}">
+            <Frame x:Name="ContentFrame" Background="{ThemeResource AppBackgroundBrush}">
                 <Frame.ContentTransitions>
                     <TransitionCollection>
                         <NavigationThemeTransition>

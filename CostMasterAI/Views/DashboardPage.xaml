@@ -11,6 +11,10 @@
     mc:Ignorable="d">
 
     <Page.Resources>
+        <helpers:CurrencyConverter x:Key="MoneyConv"/>
+        <helpers:BoolToVisibilityConverter x:Key="BoolVisConv"/>
+        <helpers:PercentageToWidthConv x:Key="PercentageToWidthConv"/>
+
         <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
         <FontFamily x:Key="AppFont">/Assets/Satoshi-Regular.otf#Satoshi</FontFamily>
         <FontFamily x:Key="AppFontBold">/Assets/Satoshi-Bold.otf#Satoshi</FontFamily>
@@ -19,20 +23,20 @@
 
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource AppFontMedium}"/>
-            <Setter Property="Foreground" Value="#1F2937"/>
+            <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
         </Style>
 
         <Style x:Key="PageTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="32"/>
             <Setter Property="FontFamily" Value="{StaticResource AppFontBlack}"/>
-            <Setter Property="Foreground" Value="#111827"/>
+            <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
             <Setter Property="CharacterSpacing" Value="-10"/>
         </Style>
 
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
-            <Setter Property="Foreground" Value="#6B7280"/>
+            <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}"/>
         </Style>
 
         <Style x:Key="DashboardCardStyle" TargetType="Grid" BasedOn="{StaticResource ModernCardStyle}">
@@ -40,8 +44,8 @@
             <Setter Property="Height" Value="160"/>
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{ThemeResource CardBorderBrush}"/>
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundBrush}"/>
         </Style>
 
         <Style x:Key="MatrixCardStyle" TargetType="Grid">
@@ -57,7 +61,7 @@
         </Style>
     </Page.Resources>
 
-    <ScrollViewer Background="#F9FAFB" UseLayoutRounding="True">
+    <ScrollViewer Background="{ThemeResource AppBackgroundBrush}" UseLayoutRounding="True">
         <Grid Padding="40">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -72,11 +76,6 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Spacing="4">
-                    <ani:Implicit.ShowAnimations>
-                        <ani:TranslationAnimation Duration="0:0:0.6" From="0, -20, 0" To="0"/>
-                        <ani:OpacityAnimation Duration="0:0:0.6" From="0" To="1"/>
-                    </ani:Implicit.ShowAnimations>
-
                     <TextBlock Text="Executive Dashboard" Style="{StaticResource PageTitleStyle}"/>
                     <TextBlock Text="Enterprise Analytics &amp; Financial Health Monitor" Style="{StaticResource SectionHeaderStyle}" Margin="0"/>
                 </StackPanel>
@@ -84,14 +83,14 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                     <Button Command="{Binding RefreshDashboardCommand}" 
                             Style="{StaticResource ModernButtonStyle}" 
-                            Background="White" BorderBrush="#E5E7EB" BorderThickness="1" Padding="12,8">
+                            Background="{ThemeResource CardBackgroundBrush}" BorderBrush="{ThemeResource CardBorderBrush}" BorderThickness="1" Padding="12,8">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf064;" FontSize="16" Foreground="#4B5563"/>
-                            <TextBlock Text="Refresh Data" FontFamily="{StaticResource AppFontBold}" Foreground="#4B5563"/>
+                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf064;" FontSize="16" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                            <TextBlock Text="Refresh Data" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}"/>
                         </StackPanel>
                     </Button>
 
-                    <Border Background="#E5E7EB" CornerRadius="4" Padding="8,4" Visibility="{Binding IsLoading, Converter={StaticResource BoolVisConv}}">
+                    <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="4" Padding="8,4" Visibility="{Binding IsLoading, Converter={StaticResource BoolVisConv}}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <ProgressRing IsActive="True" Width="16" Height="16"/>
                             <TextBlock Text="Analyzing..." FontSize="12"/>
@@ -107,61 +106,47 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <ani:Implicit.ShowAnimations>
-                    <ani:TranslationAnimation Duration="0:0:0.8" From="0, 40, 0" To="0"/>
-                    <ani:OpacityAnimation Duration="0:0:0.8" From="0" To="1"/>
-                </ani:Implicit.ShowAnimations>
-
                 <Grid Grid.Column="0" Style="{StaticResource DashboardCardStyle}">
-                    <Grid.Shadow>
-                        <ThemeShadow/>
-                    </Grid.Shadow>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid>
-                        <TextBlock Text="GROSS PROFIT MARGIN" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
-                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xef65;" FontSize="20" HorizontalAlignment="Right" Foreground="#10B981" Opacity="0.8"/>
+                        <TextBlock Text="GROSS PROFIT MARGIN" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xef65;" FontSize="20" HorizontalAlignment="Right" Foreground="{ThemeResource SuccessBrush}" Opacity="0.8"/>
                     </Grid>
-                    <TextBlock Grid.Row="1" Text="{Binding GlobalGrossProfitMargin}" Style="{StaticResource BigMetricStyle}" Foreground="#10B981" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Row="2" Text="Target: >50% (Industry Std)" FontSize="12" Foreground="#9CA3AF" FontFamily="{StaticResource AppFont}"/>
+                    <TextBlock Grid.Row="1" Text="{Binding GlobalGrossProfitMargin}" Style="{StaticResource BigMetricStyle}" Foreground="{ThemeResource SuccessBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Text="Target: >50% (Industry Std)" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
                 </Grid>
 
                 <Grid Grid.Column="1" Style="{StaticResource DashboardCardStyle}">
-                    <Grid.Shadow>
-                        <ThemeShadow/>
-                    </Grid.Shadow>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid>
-                        <TextBlock Text="TOTAL PRODUCTION COST" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
-                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf023;" FontSize="20" HorizontalAlignment="Right" Foreground="#EF4444" Opacity="0.8"/>
+                        <TextBlock Text="TOTAL PRODUCTION COST" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf023;" FontSize="20" HorizontalAlignment="Right" Foreground="{ThemeResource DangerBrush}" Opacity="0.8"/>
                     </Grid>
-                    <TextBlock Grid.Row="1" Text="{Binding TotalProductionCost, Converter={StaticResource MoneyConv}}" FontSize="32" FontFamily="{StaticResource AppFontBlack}" Foreground="#1F2937" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Row="2" Text="Estimasi 1 Batch Produksi Penuh" FontSize="12" Foreground="#9CA3AF" FontFamily="{StaticResource AppFont}"/>
+                    <TextBlock Grid.Row="1" Text="{Binding TotalProductionCost, Converter={StaticResource MoneyConv}}" FontSize="32" FontFamily="{StaticResource AppFontBlack}" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Text="Estimasi 1 Batch Produksi Penuh" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
                 </Grid>
 
                 <Grid Grid.Column="2" Style="{StaticResource DashboardCardStyle}">
-                    <Grid.Shadow>
-                        <ThemeShadow/>
-                    </Grid.Shadow>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid>
-                        <TextBlock Text="EFFICIENCY SCORE" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="#6B7280" CharacterSpacing="50"/>
-                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf371;" FontSize="20" HorizontalAlignment="Right" Foreground="#3B82F6" Opacity="0.8"/>
+                        <TextBlock Text="EFFICIENCY SCORE" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf371;" FontSize="20" HorizontalAlignment="Right" Foreground="{ThemeResource AccentBrush}" Opacity="0.8"/>
                     </Grid>
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding EfficiencyScore}" Style="{StaticResource BigMetricStyle}" Foreground="#3B82F6"/>
-                        <TextBlock Text="/100" FontSize="20" FontFamily="{StaticResource AppFontBold}" Foreground="#9CA3AF" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding EfficiencyScore}" Style="{StaticResource BigMetricStyle}" Foreground="{ThemeResource AccentBrush}"/>
+                        <TextBlock Text="/100" FontSize="20" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
                     </StackPanel>
                     <TextBlock Grid.Row="2" Text="{Binding EfficiencyStatus}" FontFamily="{StaticResource AppFontBold}" Foreground="#F59E0B"/>
                 </Grid>
@@ -174,14 +159,11 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Spacing="24">
-                    <Grid Style="{StaticResource ModernCardStyle}" Padding="24" Background="White" CornerRadius="12" BorderThickness="1" BorderBrush="#E5E7EB">
-                        <Grid.Shadow>
-                            <ThemeShadow/>
-                        </Grid.Shadow>
+                    <Grid Style="{StaticResource ModernCardStyle}" Padding="24" Background="{ThemeResource CardBackgroundBrush}" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource CardBorderBrush}">
                         <StackPanel Spacing="20">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeffa;" FontSize="18" Foreground="#4B5563"/>
-                                <TextBlock Text="Cost Structure Breakdown" FontSize="16" FontFamily="{StaticResource AppFontBold}"/>
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeffa;" FontSize="18" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <TextBlock Text="Cost Structure Breakdown" FontSize="16" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
                             </StackPanel>
 
                             <ItemsControl ItemsSource="{Binding CostStructure}">
@@ -192,13 +174,11 @@
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-
                                             <Grid Margin="0,0,0,8">
-                                                <TextBlock Text="{Binding Category}" FontFamily="{StaticResource AppFontBold}" FontSize="14"/>
-                                                <TextBlock Text="{Binding Amount, Converter={StaticResource MoneyConv}}" HorizontalAlignment="Right" FontFamily="{StaticResource AppFontMedium}" Foreground="#6B7280"/>
+                                                <TextBlock Text="{Binding Category}" FontFamily="{StaticResource AppFontBold}" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                                <TextBlock Text="{Binding Amount, Converter={StaticResource MoneyConv}}" HorizontalAlignment="Right" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextSecondaryBrush}"/>
                                             </Grid>
-
-                                            <Grid Grid.Row="1" Height="8" Background="#F3F4F6" CornerRadius="4">
+                                            <Grid Grid.Row="1" Height="8" Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="4">
                                                 <Grid HorizontalAlignment="Left" Height="8" CornerRadius="4" 
                                                       Background="{Binding Color}" 
                                                       Width="{Binding Percentage, Converter={StaticResource PercentageToWidthConv}, ConverterParameter='3.0'}"/>
@@ -210,14 +190,11 @@
                         </StackPanel>
                     </Grid>
 
-                    <Grid Style="{StaticResource ModernCardStyle}" Padding="24" Background="White" CornerRadius="12" BorderThickness="1" BorderBrush="#E5E7EB">
-                        <Grid.Shadow>
-                            <ThemeShadow/>
-                        </Grid.Shadow>
+                    <Grid Style="{StaticResource ModernCardStyle}" Padding="24" Background="{ThemeResource CardBackgroundBrush}" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource CardBorderBrush}">
                         <StackPanel Spacing="16">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xea1d;" FontSize="18" Foreground="#EF4444"/>
-                                <TextBlock Text="Top 5 Pemborosan (Pareto)" FontSize="16" FontFamily="{StaticResource AppFontBold}" Foreground="#EF4444"/>
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xea1d;" FontSize="18" Foreground="{ThemeResource DangerBrush}"/>
+                                <TextBlock Text="Top 5 Pemborosan (Pareto)" FontSize="16" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource DangerBrush}"/>
                             </StackPanel>
 
                             <ListView ItemsSource="{Binding TopCostDrivers}" SelectionMode="None">
@@ -229,19 +206,19 @@
                                 </ListView.ItemContainerStyle>
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid Padding="12,10" Background="#FEF2F2" CornerRadius="8">
+                                        <Grid Padding="12,10" Background="{ThemeResource DangerBackgroundBrush}" CornerRadius="8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
 
                                             <StackPanel>
-                                                <TextBlock Text="{Binding Name}" FontFamily="{StaticResource AppFontBold}" Foreground="#991B1B"/>
-                                                <TextBlock Text="{Binding Percentage}" FontSize="12" FontFamily="{StaticResource AppFont}" Opacity="0.7"/>
+                                                <TextBlock Text="{Binding Name}" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource DangerBrush}"/>
+                                                <TextBlock Text="{Binding Percentage}" FontSize="12" FontFamily="{StaticResource AppFont}" Opacity="0.7" Foreground="{ThemeResource DangerBrush}"/>
                                             </StackPanel>
 
                                             <TextBlock Grid.Column="1" Text="{Binding TotalCostContribution, Converter={StaticResource MoneyConv}}" 
-                                                       VerticalAlignment="Center" FontFamily="{StaticResource AppFontBold}" Foreground="#B91C1C"/>
+                                                       VerticalAlignment="Center" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource DangerBrush}"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
@@ -250,10 +227,7 @@
                     </Grid>
                 </StackPanel>
 
-                <Grid Grid.Column="1" Style="{StaticResource ModernCardStyle}" Padding="24" Background="White" CornerRadius="12" BorderThickness="1" BorderBrush="#E5E7EB">
-                    <Grid.Shadow>
-                        <ThemeShadow/>
-                    </Grid.Shadow>
+                <Grid Grid.Column="1" Style="{StaticResource ModernCardStyle}" Padding="24" Background="{ThemeResource CardBackgroundBrush}" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource CardBorderBrush}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -261,10 +235,10 @@
 
                     <StackPanel Spacing="4" Margin="0,0,0,24">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xea44;" FontSize="20"/>
-                            <TextBlock Text="Product Portfolio Matrix (BCG)" FontSize="18" FontFamily="{StaticResource AppFontBold}"/>
+                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xea44;" FontSize="20" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Product Portfolio Matrix (BCG)" FontSize="18" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
                         </StackPanel>
-                        <TextBlock Text="Analisa strategi menu berdasarkan Profitabilitas vs Volume Penjualan." FontSize="14" Foreground="#6B7280" FontFamily="{StaticResource AppFont}"/>
+                        <TextBlock Text="Analisa strategi menu berdasarkan Profitabilitas vs Volume Penjualan." FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
                     </StackPanel>
 
                     <Grid Grid.Row="1" ColumnSpacing="16" RowSpacing="16">
@@ -284,9 +258,7 @@
                                     <TextBlock Text="STARS" FontFamily="{StaticResource AppFontBlack}" Foreground="#059669" FontSize="14" CharacterSpacing="50"/>
                                 </StackPanel>
                                 <TextBlock Text="High Profit, High Sales" FontSize="12" FontFamily="{StaticResource AppFontMedium}" Foreground="#059669" Opacity="0.8" Margin="0,4,0,12"/>
-
                                 <TextBlock Text="{Binding StarProductsCount}" FontSize="56" FontFamily="{StaticResource AppFontBlack}" Foreground="#059669" HorizontalAlignment="Right" Margin="0,-20,0,0"/>
-                                <TextBlock Text="Menu unggulan. Pertahankan kualitas &amp; stok!" FontSize="12" FontStyle="Italic" FontFamily="{StaticResource AppFont}" Foreground="#065F46" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Grid>
 
@@ -297,9 +269,7 @@
                                     <TextBlock Text="CASH COWS" FontFamily="{StaticResource AppFontBlack}" Foreground="#2563EB" FontSize="14" CharacterSpacing="50"/>
                                 </StackPanel>
                                 <TextBlock Text="Low Profit, High Sales" FontSize="12" FontFamily="{StaticResource AppFontMedium}" Foreground="#2563EB" Opacity="0.8" Margin="0,4,0,12"/>
-
                                 <TextBlock Text="{Binding CashCowCount}" FontSize="56" FontFamily="{StaticResource AppFontBlack}" Foreground="#2563EB" HorizontalAlignment="Right" Margin="0,-20,0,0"/>
-                                <TextBlock Text="Mesin uang harian. Coba efisiensikan HPP agar jadi Star!" FontSize="12" FontStyle="Italic" FontFamily="{StaticResource AppFont}" Foreground="#1E40AF" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Grid>
 
@@ -310,9 +280,7 @@
                                     <TextBlock Text="PUZZLES" FontFamily="{StaticResource AppFontBlack}" Foreground="#D97706" FontSize="14" CharacterSpacing="50"/>
                                 </StackPanel>
                                 <TextBlock Text="High Profit, Low Sales" FontSize="12" FontFamily="{StaticResource AppFontMedium}" Foreground="#D97706" Opacity="0.8" Margin="0,4,0,12"/>
-
                                 <TextBlock Text="{Binding PuzzleCount}" FontSize="56" FontFamily="{StaticResource AppFontBlack}" Foreground="#D97706" HorizontalAlignment="Right" Margin="0,-20,0,0"/>
-                                <TextBlock Text="Potensi besar. Genjot marketing/promo menu ini!" FontSize="12" FontStyle="Italic" FontFamily="{StaticResource AppFont}" Foreground="#92400E" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Grid>
 
@@ -323,9 +291,7 @@
                                     <TextBlock Text="DOGS" FontFamily="{StaticResource AppFontBlack}" Foreground="#DC2626" FontSize="14" CharacterSpacing="50"/>
                                 </StackPanel>
                                 <TextBlock Text="Low Profit, Low Sales" FontSize="12" FontFamily="{StaticResource AppFontMedium}" Foreground="#DC2626" Opacity="0.8" Margin="0,4,0,12"/>
-
                                 <TextBlock Text="{Binding DogCount}" FontSize="56" FontFamily="{StaticResource AppFontBlack}" Foreground="#DC2626" HorizontalAlignment="Right" Margin="0,-20,0,0"/>
-                                <TextBlock Text="Beban operasional. Pertimbangkan untuk menghapus menu." FontSize="12" FontStyle="Italic" FontFamily="{StaticResource AppFont}" Foreground="#991B1B" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Grid>
                     </Grid>

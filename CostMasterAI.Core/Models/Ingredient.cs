@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace CostMasterAI.Models
+namespace CostMasterAI.Core.Models
 {
     public class Ingredient
     {

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace CostMasterAI.Models
+namespace CostMasterAI.Core.Models
 {
     public class Recipe : ObservableObject
     {

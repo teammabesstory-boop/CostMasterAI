@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CostMasterAI.Core (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "CostMasterAI.Core (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

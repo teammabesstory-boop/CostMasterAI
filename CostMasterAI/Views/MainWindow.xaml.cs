@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
-using CostMasterAI.Helpers; // Pastikan namespace ini ada jika butuh helper
+using CostMasterAI.Views;
 
 namespace CostMasterAI.Views
 {
@@ -11,64 +11,87 @@ namespace CostMasterAI.Views
         {
             this.InitializeComponent();
 
-            // 1. EXTEND CONTENT INTO TITLE BAR (MODERN LOOK)
+            // Mengatur TitleBar kustom
             ExtendsContentIntoTitleBar = true;
-            SetTitleBar(AppTitleBar); // Kita set Grid 'AppTitleBar' sebagai area drag
+            SetTitleBar(AppTitleBar);
 
-            // Set Judul Window
-            this.Title = "CostMaster AI";
+            // Set Tema Default ke Light saat aplikasi mulai
+            if (Content is FrameworkElement rootElement)
+            {
+                rootElement.RequestedTheme = ElementTheme.Light;
+            }
         }
 
+        // --- LOGIKA LOADING ---
         private void NavView_Loaded(object sender, RoutedEventArgs e)
         {
-            // Default page saat pertama buka: Dashboard
-            NavView.SelectedItem = NavView.MenuItems[0];
-            Navigate("dashboard");
+            // Cek apakah ada menu items
+            if (NavView.MenuItems.Count > 0)
+            {
+                // 1. Pilih item pertama (Dashboard) secara visual di menu
+                NavView.SelectedItem = NavView.MenuItems[0];
+
+                // 2. Navigasi manual ke halaman Dashboard
+                ContentFrame.Navigate(typeof(DashboardPage));
+            }
         }
 
+        // --- LOGIKA NAVIGASI ---
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
+            // Safety check: Pastikan args tidak null
+            if (args == null) return;
+
             if (args.IsSettingsSelected)
             {
                 ContentFrame.Navigate(typeof(SettingsPage));
             }
-            else
+            else if (args.SelectedItem is NavigationViewItem selectedItem)
             {
-                var selectedItem = args.SelectedItem as NavigationViewItem;
-                if (selectedItem != null)
+                string tag = selectedItem.Tag?.ToString();
+
+                switch (tag)
                 {
-                    string pageTag = selectedItem.Tag.ToString();
-                    Navigate(pageTag);
+                    case "dashboard":
+                        ContentFrame.Navigate(typeof(DashboardPage));
+                        break;
+                    case "ingredients":
+                        ContentFrame.Navigate(typeof(IngredientsPage));
+                        break;
+                    case "recipes":
+                        ContentFrame.Navigate(typeof(RecipesPage));
+                        break;
+                    case "shopping":
+                        ContentFrame.Navigate(typeof(ShoppingListPage));
+                        break;
+                    case "reports":
+                        // Case Baru untuk Halaman Laporan
+                        ContentFrame.Navigate(typeof(ReportsPage));
+                        break;
+                    case "profile":
+                        // ContentFrame.Navigate(typeof(ProfilePage)); 
+                        break;
                 }
             }
         }
 
-        private void Navigate(string navItemTag)
+        // --- LOGIKA DARK MODE ---
+        private void ToggleThemeButton_Click(object sender, RoutedEventArgs e)
         {
-            Type pageType = null;
-
-            switch (navItemTag)
+            if (Content is FrameworkElement rootElement)
             {
-                case "dashboard":
-                    pageType = typeof(DashboardPage);
-                    break;
-                case "recipes":
-                    pageType = typeof(RecipesPage);
-                    break;
-                case "ingredients":
-                    pageType = typeof(IngredientsPage);
-                    break;
-                case "shopping":
-                    pageType = typeof(ShoppingListPage);
-                    break;
-                default:
-                    return; // Do nothing if tag unknown
-            }
-
-            // Cek biar gak reload page yang sama
-            if (ContentFrame.CurrentSourcePageType != pageType)
-            {
-                ContentFrame.Navigate(pageType);
+                if (rootElement.RequestedTheme == ElementTheme.Light)
+                {
+                    rootElement.RequestedTheme = ElementTheme.Dark;
+                    // Ubah icon jadi Matahari (Sun) - Kode RemixIcon: ri-sun-line
+                    if (ThemeIcon != null) ThemeIcon.Glyph = "\uEECB";
+                }
+                else
+                {
+                    rootElement.RequestedTheme = ElementTheme.Light;
+                    // Ubah icon jadi Bulan (Moon) - Kode RemixIcon: ri-moon-line
+                    if (ThemeIcon != null) ThemeIcon.Glyph = "\uEF56";
+                }
             }
         }
     }

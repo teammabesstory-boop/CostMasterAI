@@ -1,4 +1,4 @@
-﻿namespace CostMasterAI.Models
+﻿namespace CostMasterAI.Core.Models
 {
     public class ShoppingItem
     {

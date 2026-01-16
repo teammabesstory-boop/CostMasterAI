@@ -6,7 +6,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Linq; // Penting buat LINQ
 using Windows.Storage;
-using CostMasterAI.Models;
 
 namespace CostMasterAI.Services
 {

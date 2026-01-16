@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CostMasterAI.Helpers;
-using CostMasterAI.Models;
 using CostMasterAI.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
