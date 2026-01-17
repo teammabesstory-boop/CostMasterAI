@@ -59,9 +59,12 @@ namespace CostMasterAI.ViewModels
             try
             {
                 await _dbContext.Database.EnsureCreatedAsync();
+
+                // Pastikan tracking dimatikan untuk performa (AsNoTracking)
+                // Kita include Ingredients agar data lengkap
                 var recipes = await _dbContext.Recipes
                     .AsNoTracking()
-                    .Include(r => r.Items).ThenInclude(i => i.Ingredient) // Penting: Include Bahan
+                    .Include(r => r.Items).ThenInclude(i => i.Ingredient)
                     .ToListAsync();
 
                 AllRecipes.Clear();
@@ -87,7 +90,7 @@ namespace CostMasterAI.ViewModels
             ProductionPlan.Add(new ProductionPlanItem(SelectedRecipeToAdd));
             SelectedRecipeToAdd = null; // Reset combo box
 
-            // Otomatis generate ulang list
+            // Otomatis generate ulang list belanja saat rencana berubah
             GenerateShoppingList();
         }
 
@@ -101,7 +104,8 @@ namespace CostMasterAI.ViewModels
             }
         }
 
-        // --- FITUR INTEGRASI BARU: MARK AS BOUGHT ---
+        // --- FITUR REAL INVENTORY SYSTEM: MARK AS BOUGHT ---
+        // Method ini dipanggil saat user klik "Beli" / "Selesai" di tabel belanja
         [RelayCommand]
         private async Task MarkAsBoughtAsync(ShoppingItem item)
         {
@@ -109,23 +113,52 @@ namespace CostMasterAI.ViewModels
 
             try
             {
-                // 1. Buat Transaksi Pengeluaran Otomatis
+                // 1. CARI BAHAN ASLI DI DATABASE
+                // Kita cari berdasarkan nama karena ShoppingItem adalah objek sementara (agregasi)
+                var ingredient = await _dbContext.Ingredients
+                    .FirstOrDefaultAsync(i => i.Name == item.IngredientName);
+
+                if (ingredient != null)
+                {
+                    // A. Update Stok Fisik (Bertambah karena beli)
+                    ingredient.CurrentStock += item.TotalQuantity;
+                    _dbContext.Ingredients.Update(ingredient);
+
+                    // B. Catat di Kartu Stok (Stock Transaction)
+                    // Pastikan class StockTransaction sudah dibuat di Project Core
+                    var stockLog = new StockTransaction
+                    {
+                        IngredientId = ingredient.Id,
+                        Date = DateTime.Now,
+                        Type = "In", // Barang Masuk
+                        Quantity = item.TotalQuantity,
+                        Unit = item.Unit,
+                        Description = "Pembelian via Shopping List"
+                    };
+                    _dbContext.StockTransactions.Add(stockLog);
+                }
+
+                // 2. CATAT KEUANGAN (Pengeluaran Kas)
                 var expense = new Transaction
                 {
                     Date = DateTime.Now,
                     Description = $"Belanja: {item.IngredientName} ({item.TotalQuantity:N1} {item.Unit})",
-                    Amount = item.EstimatedCost, // Harga estimasi jadi harga real
+                    Amount = item.EstimatedCost, // Harga estimasi dianggap harga real
                     Type = "Expense",
                     PaymentMethod = "Cash (Auto)"
                 };
-
                 _dbContext.Transactions.Add(expense);
+
+                // Simpan semua perubahan (Stok & Uang) ke database sekaligus
                 await _dbContext.SaveChangesAsync();
 
-                // 2. Kabari Laporan & Dashboard bahwa ada pengeluaran baru
+                // 3. NOTIFIKASI KE SISTEM LAIN (Messaging Center)
+                // Kabari Dashboard agar Cash Balance berkurang
                 WeakReferenceMessenger.Default.Send(new TransactionsChangedMessage("AutoExpense"));
+                // Kabari Halaman Bahan Baku agar Stok terupdate di UI
+                WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("StockUpdated"));
 
-                // 3. Hapus dari daftar belanja visual (Tandai Selesai)
+                // 4. HAPUS DARI LIST BELANJA (Visual UI)
                 if (ShoppingList.Contains(item))
                 {
                     ShoppingList.Remove(item);
@@ -135,10 +168,13 @@ namespace CostMasterAI.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error MarkAsBought: {ex.Message}");
+                // Jika error CS1061/CS0246 muncul di sini, berarti Project Core belum di-Rebuild
+                // atau file StockTransaction.cs belum ada di namespace CostMasterAI.Core.Models
             }
         }
 
         // --- THE MAGIC: AGGREGATION LOGIC ---
+        // Menghitung total kebutuhan bahan dari semua resep yang direncanakan
         [RelayCommand]
         public void GenerateShoppingList()
         {
@@ -151,6 +187,7 @@ namespace CostMasterAI.ViewModels
             {
                 if (plan.TargetQty <= 0) continue;
 
+                // Hitung rasio batch. Misal Yield resep 10 pcs, mau bikin 50 pcs, berarti 5x lipat.
                 double batchRatio = (double)plan.TargetQty / (plan.Recipe.YieldQty > 0 ? plan.Recipe.YieldQty : 1);
 
                 foreach (var item in plan.Recipe.Items)
@@ -166,16 +203,17 @@ namespace CostMasterAI.ViewModels
                     else
                         requiredQty = item.UsageQty * batchRatio; // Per Batch (Ratio)
 
-                    // Konversi Satuan (Misal Resep pakai Gram, Stok pakai Kg)
-                    // Sementara kita asumsikan unit sama
+                    // Asumsi konversi 1:1 untuk simplifikasi awal
+                    // (Nanti bisa ditambah UnitConverterService)
                     double conversionRate = 1;
                     double finalQty = requiredQty * conversionRate;
 
                     if (aggregation.ContainsKey(item.IngredientId))
                     {
+                        // Jika bahan sudah ada di list, tambahkan qty-nya
                         aggregation[item.IngredientId].TotalQuantity += finalQty;
 
-                        // Recalculate cost addition
+                        // Hitung tambahan biaya
                         decimal costPerUnit = item.Ingredient.QuantityPerPackage > 0
                             ? item.Ingredient.PricePerPackage / (decimal)item.Ingredient.QuantityPerPackage
                             : 0;
@@ -184,6 +222,7 @@ namespace CostMasterAI.ViewModels
                     }
                     else
                     {
+                        // Jika belum ada, buat entry baru
                         decimal costPerUnit = item.Ingredient.QuantityPerPackage > 0
                             ? item.Ingredient.PricePerPackage / (decimal)item.Ingredient.QuantityPerPackage
                             : 0;
@@ -191,7 +230,7 @@ namespace CostMasterAI.ViewModels
                         aggregation[item.IngredientId] = new ShoppingItem
                         {
                             IngredientName = item.Ingredient.Name,
-                            Unit = item.UsageUnit, // Gunakan unit dari resep agar tidak bingung
+                            Unit = item.UsageUnit, // Gunakan unit dari resep
                             TotalQuantity = finalQty,
                             EstimatedCost = (decimal)finalQty * costPerUnit,
                             Category = item.Ingredient.Category
@@ -200,12 +239,10 @@ namespace CostMasterAI.ViewModels
                 }
             }
 
-            // 4. Render ke UI dengan Rounding
+            // Render ke UI
             foreach (var kvp in aggregation)
             {
-                // FIX: Bulatkan 2 angka di belakang koma biar rapi di DataGrid
                 kvp.Value.TotalQuantity = Math.Round(kvp.Value.TotalQuantity, 2);
-
                 ShoppingList.Add(kvp.Value);
                 TotalEstimatedBudget += kvp.Value.EstimatedCost;
             }

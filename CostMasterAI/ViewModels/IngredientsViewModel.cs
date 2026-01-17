@@ -50,6 +50,10 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty]
         private string _inputYield = "100";
 
+        // --- NEW: INVENTORY INPUTS ---
+        [ObservableProperty] private string _inputStock = "0"; // Stok Fisik
+        [ObservableProperty] private string _inputMinStock = "0"; // Alert Limit
+
         // --- COMPUTED PROPERTY (Real-time Feedback) ---
         public string CalculatedCostPerUnit
         {
@@ -68,6 +72,13 @@ namespace CostMasterAI.ViewModels
         public IngredientsViewModel(AppDbContext dbContext)
         {
             _dbContext = dbContext;
+
+            // Dengarkan update stok dari halaman lain (Shopping List / Reports)
+            WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
+            {
+                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDataAsync());
+            });
+
             _ = LoadDataAsync();
         }
 
@@ -125,33 +136,54 @@ namespace CostMasterAI.ViewModels
             if (!double.TryParse(InputQty, out var qty) || qty <= 0) return;
             if (!double.TryParse(InputYield, out var yield)) yield = 100;
 
+            // Parse Stock Inputs
+            double.TryParse(InputStock, out var stock);
+            double.TryParse(InputMinStock, out var minStock);
+
             try
             {
-                // Bersihkan tracker untuk mencegah konflik
                 _dbContext.ChangeTracker.Clear();
 
                 if (IsEditing && SelectedIngredient != null)
                 {
-                    // UPDATE EXISTING
+                    // --- UPDATE EXISTING (STOCK OPNAME LOGIC) ---
                     var existing = await _dbContext.Ingredients.FindAsync(SelectedIngredient.Id);
                     if (existing != null)
                     {
+                        // 1. Cek perubahan Stok (Stock Opname)
+                        if (Math.Abs(existing.CurrentStock - stock) > 0.001)
+                        {
+                            double diff = stock - existing.CurrentStock;
+                            // Catat Transaksi Adjustment
+                            _dbContext.StockTransactions.Add(new StockTransaction
+                            {
+                                IngredientId = existing.Id,
+                                Date = DateTime.Now,
+                                Type = "Adjustment",
+                                Quantity = Math.Abs(diff),
+                                Unit = InputUnit,
+                                Description = diff > 0 ? "Stock Opname (Tambah)" : "Stock Opname (Susut)"
+                            });
+                        }
+
+                        // 2. Update Data Master
                         existing.Name = InputName;
                         existing.PricePerPackage = price;
                         existing.QuantityPerPackage = qty;
                         existing.Unit = InputUnit;
                         existing.YieldPercent = yield;
+                        existing.CurrentStock = stock; // Update Stok Baru
+                        existing.MinimumStock = minStock;
 
                         _dbContext.Ingredients.Update(existing);
                         await _dbContext.SaveChangesAsync();
 
-                        // INTEGRASI: Kirim sinyal update ke seluruh aplikasi
                         WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Updated"));
                     }
                 }
                 else
                 {
-                    // CREATE NEW
+                    // --- CREATE NEW ---
                     var newIng = new Ingredient
                     {
                         Name = InputName,
@@ -159,12 +191,28 @@ namespace CostMasterAI.ViewModels
                         QuantityPerPackage = qty,
                         Unit = InputUnit,
                         YieldPercent = yield,
-                        Category = "General"
+                        Category = "General",
+                        CurrentStock = stock,
+                        MinimumStock = minStock
                     };
                     _dbContext.Ingredients.Add(newIng);
-                    await _dbContext.SaveChangesAsync();
+                    await _dbContext.SaveChangesAsync(); // Save dulu untuk dapat ID
 
-                    // INTEGRASI: Kirim sinyal update ke seluruh aplikasi
+                    // Jika ada stok awal, catat sebagai Inisialisasi
+                    if (stock > 0)
+                    {
+                        _dbContext.StockTransactions.Add(new StockTransaction
+                        {
+                            IngredientId = newIng.Id,
+                            Date = DateTime.Now,
+                            Type = "In",
+                            Quantity = stock,
+                            Unit = InputUnit,
+                            Description = "Initial Stock"
+                        });
+                        await _dbContext.SaveChangesAsync();
+                    }
+
                     WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Created"));
                 }
 
@@ -199,9 +247,13 @@ namespace CostMasterAI.ViewModels
                 if (entry != null)
                 {
                     _dbContext.Ingredients.Remove(entry);
+
+                    // Hapus history stok juga agar bersih
+                    var history = _dbContext.StockTransactions.Where(x => x.IngredientId == item.Id);
+                    _dbContext.StockTransactions.RemoveRange(history);
+
                     await _dbContext.SaveChangesAsync();
 
-                    // INTEGRASI: Kirim sinyal update ke seluruh aplikasi
                     WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Deleted"));
                 }
 
@@ -233,6 +285,10 @@ namespace CostMasterAI.ViewModels
             InputUnit = item.Unit;
             InputYield = item.YieldPercent.ToString("0.##");
 
+            // Populate Stock
+            InputStock = item.CurrentStock.ToString("0.##");
+            InputMinStock = item.MinimumStock.ToString("0.##");
+
             IsEditing = true;
         }
 
@@ -245,6 +301,8 @@ namespace CostMasterAI.ViewModels
             InputQty = "";
             InputUnit = "Gram";
             InputYield = "100";
+            InputStock = "0";
+            InputMinStock = "0";
             IsEditing = false;
         }
 

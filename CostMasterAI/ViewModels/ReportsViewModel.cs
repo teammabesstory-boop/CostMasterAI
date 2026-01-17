@@ -43,10 +43,12 @@ namespace CostMasterAI.ViewModels
         // List Produk untuk Dijual
         public ObservableCollection<Recipe> ProductList { get; } = new();
 
-        public ReportsViewModel()
+        // --- CONSTRUCTOR INJECTION ---
+        public ReportsViewModel(AppDbContext dbContext)
         {
-            _dbContext = new AppDbContext();
+            _dbContext = dbContext;
 
+            // Integrasi: Dengarkan jika ada transaksi baru dari halaman lain (misal: Shopping List)
             WeakReferenceMessenger.Default.Register<TransactionsChangedMessage>(this, (r, m) =>
             {
                 App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDataAsync());
@@ -140,9 +142,9 @@ namespace CostMasterAI.ViewModels
             SelectedTypeIndex = 1;
         }
 
-        // PERBAIKAN NAMA: Hapus 'Command' di nama method agar generator membuat 'SellProductCommand'
+        // --- CORE LOGIC UPDATE: REAL INVENTORY DEDUCTION ---
         [RelayCommand]
-        private async Task SellProduct()
+        private async Task SellProductAsync()
         {
             // Validasi Ketat
             if (SelectedProductToSell == null) return;
@@ -157,24 +159,78 @@ namespace CostMasterAI.ViewModels
             string varianceTag = "";
             if (stdPrice != actualPrice)
             {
-                varianceTag = $" [Std:{stdPrice}]";
+                varianceTag = $" [Std:{stdPrice:N0}]";
             }
-
-            var newTrx = new Transaction
-            {
-                Date = DateTime.Now,
-                Description = $"Jual {qty}x {SelectedProductToSell.Name}{varianceTag}",
-                Amount = actualPrice,
-                Type = "Income", // Penjualan selalu Income
-                PaymentMethod = "Cash"
-            };
 
             try
             {
+                // 1. Simpan Transaksi Keuangan (Pemasukan)
+                var newTrx = new Transaction
+                {
+                    Date = DateTime.Now,
+                    Description = $"Jual {qty}x {SelectedProductToSell.Name}{varianceTag}",
+                    Amount = actualPrice,
+                    Type = "Income", // Penjualan selalu Income
+                    PaymentMethod = "Cash"
+                };
                 _dbContext.Transactions.Add(newTrx);
+
+                // 2. RECIPE EXPLOSION (POTONG STOK)
+                // Kita perlu load resep lengkap dari DB untuk memastikan kita punya item bahan terbaru
+                // dan objek Ingredients yang ter-attach ke context agar update stok tersimpan.
+                var recipeWithItems = await _dbContext.Recipes
+                    .Include(r => r.Items)
+                    .ThenInclude(ri => ri.Ingredient)
+                    .FirstOrDefaultAsync(r => r.Id == SelectedProductToSell.Id);
+
+                if (recipeWithItems != null)
+                {
+                    foreach (var item in recipeWithItems.Items)
+                    {
+                        if (item.Ingredient != null)
+                        {
+                            // Hitung pemakaian bahan
+                            double usagePerUnit = 0;
+
+                            if (item.IsPerPiece)
+                            {
+                                // Jika bahan dihitung per pcs (misal: Glaze, Topping per donat)
+                                usagePerUnit = item.UsageQty;
+                            }
+                            else
+                            {
+                                // Jika bahan adalah adonan (Batch), bagi dengan yield resep
+                                // Misal: 1 Batch (Yield 10 pcs) butuh 1000g tepung -> 1 pcs butuh 100g.
+                                double yield = recipeWithItems.YieldQty > 0 ? recipeWithItems.YieldQty : 1;
+                                usagePerUnit = item.UsageQty / yield;
+                            }
+
+                            double totalUsage = usagePerUnit * qty;
+
+                            // Kurangi Stok Fisik
+                            item.Ingredient.CurrentStock -= totalUsage;
+                            _dbContext.Ingredients.Update(item.Ingredient);
+
+                            // Catat Log Stok Keluar (Stock Transaction)
+                            var stockLog = new StockTransaction
+                            {
+                                IngredientId = item.Ingredient.Id,
+                                Date = DateTime.Now,
+                                Type = "Out", // Barang Keluar
+                                Quantity = totalUsage,
+                                Unit = item.UsageUnit,
+                                Description = $"Terjual: {qty}x {recipeWithItems.Name}",
+                                ReferenceId = "" // Bisa diisi ID Transaksi jika mau relasi kuat
+                            };
+                            _dbContext.StockTransactions.Add(stockLog);
+                        }
+                    }
+                }
+
+                // Simpan semua perubahan (Keuangan + Stok) ke database
                 await _dbContext.SaveChangesAsync();
 
-                // Update UI Manual (agar instan)
+                // 3. Update UI
                 Transactions.Insert(0, newTrx);
                 RecalculateTotals();
 
@@ -185,8 +241,9 @@ namespace CostMasterAI.ViewModels
                 SalesStandardTotal = "0";
                 SalesVariance = "0";
 
-                // Kabari Dashboard
+                // 4. Kabari Sistem Lain
                 WeakReferenceMessenger.Default.Send(new TransactionsChangedMessage("NewTransaction"));
+                WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("StockDeducted")); // Kabari halaman Bahan Baku
             }
             catch (Exception ex)
             {

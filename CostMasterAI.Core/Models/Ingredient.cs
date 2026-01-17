@@ -21,6 +21,8 @@ namespace CostMasterAI.Core.Models
         // --- SUB-RECIPE LINK (BARU) ---
         // Jika tidak null, berarti ingredient ini adalah representasi dari sebuah Resep (Sub-Recipe)
         public int? LinkedRecipeId { get; set; }
+        public double CurrentStock { get; set; } = 0; // Stok fisik saat ini
+        public double MinimumStock { get; set; } = 0; // Batas aman stok (untuk alert)
 
         public decimal RealCostPerUnit
         {

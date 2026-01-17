@@ -18,6 +18,7 @@ namespace CostMasterAI.Core.Services
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
         public AppDbContext() { }
+        public DbSet<StockTransaction> StockTransactions { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
