@@ -47,12 +47,7 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private Recipe? _selectedRecipeToAdd;
         [ObservableProperty] private decimal _totalEstimatedBudget;
 
-        public ShoppingListViewModel()
-        {
-            _dbContext = new AppDbContext();
-            _ = LoadRecipesAsync();
-        }
-
+        // --- CONSTRUCTOR INJECTION ---
         public ShoppingListViewModel(AppDbContext dbContext)
         {
             _dbContext = dbContext;
@@ -61,18 +56,23 @@ namespace CostMasterAI.ViewModels
 
         public async Task LoadRecipesAsync()
         {
-            await _dbContext.Database.EnsureCreatedAsync();
-            var recipes = await _dbContext.Recipes
-                .AsNoTracking()
-                .Include(r => r.Items).ThenInclude(i => i.Ingredient) // Penting: Include Bahan
-                .ToListAsync();
-
-            AllRecipes.Clear();
-            foreach (var r in recipes)
+            try
             {
-                // Hitung cost manual jika properti calculated tidak tersimpan
-                // r.RecalculateCosts(); 
-                AllRecipes.Add(r);
+                await _dbContext.Database.EnsureCreatedAsync();
+                var recipes = await _dbContext.Recipes
+                    .AsNoTracking()
+                    .Include(r => r.Items).ThenInclude(i => i.Ingredient) // Penting: Include Bahan
+                    .ToListAsync();
+
+                AllRecipes.Clear();
+                foreach (var r in recipes)
+                {
+                    AllRecipes.Add(r);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error LoadRecipes: {ex.Message}");
             }
         }
 
@@ -107,27 +107,34 @@ namespace CostMasterAI.ViewModels
         {
             if (item == null) return;
 
-            // 1. Buat Transaksi Pengeluaran Otomatis
-            var expense = new Transaction
+            try
             {
-                Date = DateTime.Now,
-                Description = $"Belanja: {item.IngredientName} ({item.TotalQuantity:N1} {item.Unit})",
-                Amount = item.EstimatedCost, // Harga estimasi jadi harga real
-                Type = "Expense",
-                PaymentMethod = "Cash (Auto)"
-            };
+                // 1. Buat Transaksi Pengeluaran Otomatis
+                var expense = new Transaction
+                {
+                    Date = DateTime.Now,
+                    Description = $"Belanja: {item.IngredientName} ({item.TotalQuantity:N1} {item.Unit})",
+                    Amount = item.EstimatedCost, // Harga estimasi jadi harga real
+                    Type = "Expense",
+                    PaymentMethod = "Cash (Auto)"
+                };
 
-            _dbContext.Transactions.Add(expense);
-            await _dbContext.SaveChangesAsync();
+                _dbContext.Transactions.Add(expense);
+                await _dbContext.SaveChangesAsync();
 
-            // 2. Kabari Laporan & Dashboard bahwa ada pengeluaran baru
-            WeakReferenceMessenger.Default.Send(new TransactionsChangedMessage("AutoExpense"));
+                // 2. Kabari Laporan & Dashboard bahwa ada pengeluaran baru
+                WeakReferenceMessenger.Default.Send(new TransactionsChangedMessage("AutoExpense"));
 
-            // 3. Hapus dari daftar belanja visual (Tandai Selesai)
-            if (ShoppingList.Contains(item))
+                // 3. Hapus dari daftar belanja visual (Tandai Selesai)
+                if (ShoppingList.Contains(item))
+                {
+                    ShoppingList.Remove(item);
+                    TotalEstimatedBudget -= item.EstimatedCost;
+                }
+            }
+            catch (Exception ex)
             {
-                ShoppingList.Remove(item);
-                TotalEstimatedBudget -= item.EstimatedCost;
+                System.Diagnostics.Debug.WriteLine($"Error MarkAsBought: {ex.Message}");
             }
         }
 
@@ -160,11 +167,8 @@ namespace CostMasterAI.ViewModels
                         requiredQty = item.UsageQty * batchRatio; // Per Batch (Ratio)
 
                     // Konversi Satuan (Misal Resep pakai Gram, Stok pakai Kg)
-                    // Sementara kita asumsikan unit sama, atau gunakan helper konversi sederhana
+                    // Sementara kita asumsikan unit sama
                     double conversionRate = 1;
-                    // double conversionRate = UnitHelper.GetConversionRate(item.UsageUnit, item.Ingredient.Unit);
-                    // if (conversionRate <= 0) conversionRate = 1;
-
                     double finalQty = requiredQty * conversionRate;
 
                     if (aggregation.ContainsKey(item.IngredientId))

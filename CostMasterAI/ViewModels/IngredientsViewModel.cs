@@ -64,12 +64,7 @@ namespace CostMasterAI.ViewModels
             }
         }
 
-        public IngredientsViewModel()
-        {
-            _dbContext = new AppDbContext();
-            _ = LoadDataAsync();
-        }
-
+        // --- CONSTRUCTOR INJECTION ---
         public IngredientsViewModel(AppDbContext dbContext)
         {
             _dbContext = dbContext;

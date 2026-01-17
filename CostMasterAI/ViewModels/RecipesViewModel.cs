@@ -104,8 +104,6 @@ namespace CostMasterAI.ViewModels
                 decimal taxFactor = 1 + (decimal)(TaxPercent / 100.0);
 
                 // Harga Jual Akhir = Harga Sebelum Pajak + Pajak
-                // ATAU: Harga Jual Akhir = Harga Sebelum Pajak * Faktor Pajak
-                // Logic lama Anda: preTaxPrice + taxAmount. Mari kita konsistenkan.
                 decimal finalPrice = preTaxPrice * taxFactor;
 
                 _manualSellingPriceInput = RoundUpToNearestHundred(finalPrice).ToString("F0");
@@ -366,25 +364,13 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private bool _isGeneratingHypnotic;
         [ObservableProperty] private bool _isGeneratingImagePrompt;
 
-        public RecipesViewModel()
-        {
-            _dbContext = new AppDbContext();
-            _aiService = new AIService();
-
-            // INTEGRASI: Dengarkan perubahan harga dari halaman Bahan Baku
-            WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
-            {
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDataAsync());
-            });
-
-            _ = LoadDataAsync();
-        }
-
+        // --- CONSTRUCTOR INJECTION ---
         public RecipesViewModel(AppDbContext dbContext, AIService aiService)
         {
             _dbContext = dbContext;
             _aiService = aiService;
 
+            // INTEGRASI: Dengarkan perubahan harga dari halaman Bahan Baku
             WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
             {
                 App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDataAsync());

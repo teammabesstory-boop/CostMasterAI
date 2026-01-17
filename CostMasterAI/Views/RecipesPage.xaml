@@ -298,7 +298,7 @@
                                         <TextBox Grid.Column="2" PlaceholderText="Qty" Text="{Binding UsageQtyInput, Mode=TwoWay}" FontFamily="{StaticResource AppFontMedium}"/>
                                         <ComboBox Grid.Column="3" PlaceholderText="Unit" ItemsSource="{Binding UnitOptions}" SelectedItem="{Binding SelectedUsageUnit, Mode=TwoWay}" HorizontalAlignment="Stretch" FontFamily="{StaticResource AppFont}"/>
 
-                                        <CheckBox Grid.Column="4" Content="/Pcs" IsChecked="{Binding IsInputPerPiece, Mode=TwoWay}" FontFamily="{StaticResource AppFontMedium}"
+                                        <CheckBox Grid.Column="4" Content="/Pcs" IsChecked="{Binding IsInputPerPiece, Mode=TwoWay}" FontFamily="{StaticResource AppFontMedium}" 
                                                   ToolTipService.ToolTip="Centang jika takaran ini untuk 1 pcs donat (Misal: Glaze 10g)"/>
 
                                         <Button Grid.Column="5" Content="Tambah" Command="{Binding AddItemToRecipeCommand}" Style="{StaticResource PrimaryButtonStyle}" FontFamily="{StaticResource AppFontBold}"/>

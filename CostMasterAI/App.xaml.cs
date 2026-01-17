@@ -1,9 +1,12 @@
 ﻿using Microsoft.UI.Xaml;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
+using Microsoft.Extensions.DependencyInjection; // Namespace untuk DI
 using System;
-using CostMasterAI.Core.Services; // FIXED: Mengarah ke Project Core
+using CostMasterAI.Views;
 using CostMasterAI.ViewModels;
-using CostMasterAI.Services;      // Untuk AIService (yang masih di project UI)
+using CostMasterAI.Services;
+using CostMasterAI.Core.Services;
 
 namespace CostMasterAI
 {
@@ -13,39 +16,53 @@ namespace CostMasterAI
         public static Window MainWindow { get; private set; }
 
         private Window m_window;
+
+        // Container Dependency Injection
         public IServiceProvider Services { get; }
+
         public new static App Current => (App)Application.Current;
 
         public App()
         {
             this.InitializeComponent();
 
+            // 1. Konfigurasi Services & ViewModel saat aplikasi start
+            Services = ConfigureServices();
+        }
+
+        private static IServiceProvider ConfigureServices()
+        {
             var services = new ServiceCollection();
 
-            // --- 1. DATABASE SERVICE ---
-            // Register AppDbContext dari Core.
-            // Meskipun ViewModel mungkin pakai 'new AppDbContext()', 
-            // kita tetap butuh ini untuk inisialisasi awal database (EnsureCreated).
-            services.AddDbContext<AppDbContext>();
+            // --- A. REGISTER CORE SERVICES ---
 
-            // --- 2. VIEWMODELS ---
-            services.AddTransient<MainViewModel>();
-            services.AddTransient<IngredientsViewModel>();
-            services.AddTransient<RecipesViewModel>();
-            services.AddTransient<SettingsViewModel>();
-            services.AddTransient<DashboardViewModel>();
-            services.AddTransient<ShoppingListViewModel>();
-            services.AddTransient<ReportsViewModel>(); // Tambahan baru
-
-            // --- 3. SERVICES LAIN ---
+            // AIService: Singleton karena menggunakan HttpClient yang sebaiknya reuse connection
             services.AddSingleton<AIService>();
 
-            Services = services.BuildServiceProvider();
+            // AppDbContext: Transient agar setiap kali diminta, dibuat instance baru.
+            // Ini mencegah konflik thread dan memastikan koneksi database selalu segar.
+            services.AddTransient<AppDbContext>();
+
+            // --- B. REGISTER VIEWMODELS ---
+            // ViewModel didaftarkan sebagai Transient (dibuat baru saat halaman dibuka)
+            // Container akan otomatis mengisikan Constructor yang dibutuhkan (misal: AIService, AppDbContext)
+
+            services.AddTransient<MainViewModel>();
+            services.AddTransient<DashboardViewModel>();
+            services.AddTransient<IngredientsViewModel>();
+            services.AddTransient<RecipesViewModel>();
+            services.AddTransient<ShoppingListViewModel>();
+            services.AddTransient<ReportsViewModel>();
+            services.AddTransient<AIAssistantViewModel>(); // Fitur Baru
+            services.AddTransient<SettingsViewModel>();
+
+            return services.BuildServiceProvider();
         }
 
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            // A. Inisialisasi Database (Buat file .db jika belum ada)
+            // A. Inisialisasi Database
+            // Kita buat scope sementara hanya untuk memastikan DB terbentuk
             using (var scope = Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -53,14 +70,12 @@ namespace CostMasterAI
             }
 
             // B. Membuat Window Utama
-            // PENTING: Gunakan namespace lengkap 'CostMasterAI.Views.MainWindow'
-            // untuk menghindari error "Ambiguous Reference" jika ada sisa file di Core.
             m_window = new CostMasterAI.Views.MainWindow();
 
-            // C. Assign ke properti static
+            // C. Assign ke properti static agar bisa diakses global
             MainWindow = m_window;
 
-            // D. Tampilkan Window (Solusi agar aplikasi muncul)
+            // D. Tampilkan Window
             m_window.Activate();
         }
     }

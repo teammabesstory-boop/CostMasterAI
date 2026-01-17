@@ -11,10 +11,6 @@
     
     mc:Ignorable="d">
 
-    <Page.DataContext>
-        <vm:ReportsViewModel/>
-    </Page.DataContext>
-
     <Page.Resources>
         <helpers:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
         <helpers:CurrencyConverter x:Key="MoneyConv"/>

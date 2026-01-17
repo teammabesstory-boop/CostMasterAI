@@ -9,10 +9,6 @@
     xmlns:helpers="using:CostMasterAI.Helpers"
     mc:Ignorable="d">
 
-    <Page.DataContext>
-        <vm:AIAssistantViewModel/>
-    </Page.DataContext>
-
     <Page.Resources>
         <helpers:BoolToVisibilityConverter x:Key="BoolVisConv"/>
         <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
