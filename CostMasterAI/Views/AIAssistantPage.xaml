@@ -11,7 +11,10 @@
 
     <Page.Resources>
         <helpers:BoolToVisibilityConverter x:Key="BoolVisConv"/>
+        <helpers:BoolToDoubleConverter x:Key="HeightConv"/>
+
         <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
+        <FontFamily x:Key="AppFont">/Assets/Satoshi-Regular.otf#Satoshi</FontFamily>
         <FontFamily x:Key="AppFontBold">/Assets/Satoshi-Bold.otf#Satoshi</FontFamily>
         <FontFamily x:Key="AppFontBlack">/Assets/Satoshi-Black.otf#Satoshi</FontFamily>
 
@@ -21,6 +24,7 @@
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="{ThemeResource CardBorderBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
         </Style>
     </Page.Resources>
 
@@ -35,14 +39,14 @@
             <StackPanel Grid.Row="0" Margin="0,0,0,32">
                 <StackPanel Orientation="Horizontal" Spacing="12">
                     <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xee3e;" FontSize="32" Foreground="{ThemeResource AccentBrush}"/>
-                    <TextBlock Text="AI Assistant Center" FontSize="32" FontFamily="{StaticResource AppFontBlack}"/>
+                    <TextBlock Text="AI Assistant Center" FontSize="32" FontFamily="{StaticResource AppFontBlack}" Foreground="{ThemeResource TextPrimaryBrush}"/>
                 </StackPanel>
-                <TextBlock Text="Asisten cerdas untuk optimasi biaya, kreasi menu, dan prediksi bisnis." 
+                <TextBlock Text="Asisten cerdas bertenaga Google Gemini untuk optimasi bisnis kuliner Anda." 
                            FontSize="16" Foreground="{ThemeResource TextSecondaryBrush}" Margin="44,4,0,0"/>
             </StackPanel>
 
             <Grid Grid.Row="1" Margin="0,0,0,24" Visibility="{Binding IsThinking, Converter={StaticResource BoolVisConv}}">
-                <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="8" Padding="16">
+                <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="8" Padding="16" BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1">
                     <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
                         <ProgressRing IsActive="True"/>
                         <TextBlock Text="{Binding ThinkingMessage}" VerticalAlignment="Center" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
@@ -63,20 +67,31 @@
                 <Grid Grid.Row="0" Grid.Column="0" Style="{StaticResource AICardStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Spacing="8">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xec9c;" Foreground="#F59E0B" FontSize="20"/>
-                            <TextBlock Text="Profit Doctor" FontFamily="{StaticResource AppFontBold}" FontSize="18"/>
+                    <Grid>
+                        <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xec9c;" Foreground="#F59E0B" FontSize="20"/>
+                                <TextBlock Text="Profit Doctor" FontFamily="{StaticResource AppFontBold}" FontSize="18"/>
+                            </StackPanel>
+                            <TextBlock Text="Audit margin &amp; efisiensi." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/>
                         </StackPanel>
-                        <TextBlock Text="Audit resep untuk menemukan margin tipis." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                    </StackPanel>
+                        <ToggleButton x:Name="ProfitExpandBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="6" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Expand View">
+                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf065;" FontSize="16" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                        </ToggleButton>
+                    </Grid>
 
-                    <ScrollViewer Grid.Row="1" Height="120" Margin="0,16">
-                        <TextBlock Text="{Binding ProfitAnalysisResult}" TextWrapping="Wrap" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                    <ScrollViewer Grid.Row="1" Margin="0,16" 
+                                  MinHeight="160"
+                                  MaxHeight="{Binding IsChecked, ElementName=ProfitExpandBtn, Converter={StaticResource HeightConv}, ConverterParameter='160'}" 
+                                  VerticalScrollBarVisibility="Auto">
+                        <controls:MarkdownTextBlock Text="{Binding ProfitAnalysisResult}" 
+                                                    TextWrapping="Wrap" 
+                                                    Background="Transparent"
+                                                    Foreground="{ThemeResource TextPrimaryBrush}"/>
                     </ScrollViewer>
 
                     <Button Grid.Row="2" Command="{Binding RunProfitAuditCommand}" Content="Audit Sekarang" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Stretch"/>
@@ -85,76 +100,136 @@
                 <Grid Grid.Row="0" Grid.Column="1" Style="{StaticResource AICardStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Spacing="8">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xebc5;" Foreground="#3B82F6" FontSize="20"/>
-                            <TextBlock Text="Sales Forecaster" FontFamily="{StaticResource AppFontBold}" FontSize="18"/>
+                    <Grid>
+                        <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xebc5;" Foreground="#3B82F6" FontSize="20"/>
+                                <TextBlock Text="Sales Forecaster" FontFamily="{StaticResource AppFontBold}" FontSize="18"/>
+                            </StackPanel>
+                            <TextBlock Text="Prediksi omset &amp; tren." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/>
                         </StackPanel>
-                        <TextBlock Text="Prediksi omset minggu depan dari data historis." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                    </StackPanel>
+                        <ToggleButton x:Name="SalesExpandBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="6" Background="Transparent" BorderThickness="0">
+                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf065;" FontSize="16" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                        </ToggleButton>
+                    </Grid>
 
-                    <ScrollViewer Grid.Row="1" Height="120" Margin="0,16">
-                        <TextBlock Text="{Binding SalesForecastResult}" TextWrapping="Wrap" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                    <ScrollViewer Grid.Row="1" Margin="0,16"
+                                  MinHeight="160"
+                                  MaxHeight="{Binding IsChecked, ElementName=SalesExpandBtn, Converter={StaticResource HeightConv}, ConverterParameter='160'}"
+                                  VerticalScrollBarVisibility="Auto">
+                        <controls:MarkdownTextBlock Text="{Binding SalesForecastResult}" 
+                                                    TextWrapping="Wrap" 
+                                                    Background="Transparent"
+                                                    Foreground="{ThemeResource TextPrimaryBrush}"/>
                     </ScrollViewer>
 
-                    <Button Grid.Row="2" Command="{Binding PredictSalesCommand}" Content="Mulai Prediksi" HorizontalAlignment="Stretch"/>
+                    <Button Grid.Row="2" Command="{Binding PredictSalesCommand}" Content="Mulai Prediksi" HorizontalAlignment="Stretch" Style="{StaticResource ModernButtonStyle}"/>
                 </Grid>
 
                 <Grid Grid.Row="1" Grid.Column="0" Style="{StaticResource AICardStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Spacing="8">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeb55;" Foreground="#10B981" FontSize="20"/>
-                            <TextBlock Text="Smart Inventory Chef" FontFamily="{StaticResource AppFontBold}" FontSize="18"/>
+                    <Grid>
+                        <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeb55;" Foreground="#10B981" FontSize="20"/>
+                                <TextBlock Text="Smart Inventory Chef" FontFamily="{StaticResource AppFontBold}" FontSize="18"/>
+                            </StackPanel>
+                            <TextBlock Text="Kreasi menu dari stok gudang." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/>
                         </StackPanel>
-                        <TextBlock Text="Buat resep otomatis dari bahan yang tersedia." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                        <ToggleButton x:Name="ChefExpandBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="6" Background="Transparent" BorderThickness="0">
+                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf065;" FontSize="16" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                        </ToggleButton>
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" Margin="0,16,0,8">
+                        <TextBlock Text="Bahan Tersedia:" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                        <ScrollViewer Height="80" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding LowStockIngredients}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Spacing="4"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="4" Padding="8,4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Name}" FontSize="12" FontFamily="{StaticResource AppFont}"/>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding CurrentStock}" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
+                                                    <TextBlock Text="{Binding Unit}" FontSize="12" Opacity="0.7"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
                     </StackPanel>
 
-                    <ListView Grid.Row="1" ItemsSource="{Binding LowStockIngredients}" Height="120" Margin="0,16">
-                        <ListView.Header>
-                            <TextBlock Text="Bahan Tersedia:" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-                        </ListView.Header>
-                        <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Name}" FontSize="13"/>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
+                    <ScrollViewer Grid.Row="2" Margin="0,0,0,16"
+                                  MinHeight="100"
+                                  MaxHeight="{Binding IsChecked, ElementName=ChefExpandBtn, Converter={StaticResource HeightConv}, ConverterParameter='120'}"
+                                  VerticalScrollBarVisibility="Auto">
+                        <controls:MarkdownTextBlock Text="{Binding RecipeResult}" 
+                                                    TextWrapping="Wrap" 
+                                                    Background="Transparent"
+                                                    Foreground="{ThemeResource TextPrimaryBrush}"/>
+                    </ScrollViewer>
 
-                    <Button Grid.Row="2" Command="{Binding CreateRecipeFromStockCommand}" Content="Generate Resep &amp; Simpan" HorizontalAlignment="Stretch"/>
+                    <Button Grid.Row="3" Command="{Binding CreateRecipeFromStockCommand}" Content="Generate Ide Resep" HorizontalAlignment="Stretch" Style="{StaticResource ModernButtonStyle}"/>
                 </Grid>
 
                 <Grid Grid.Row="1" Grid.Column="1" Style="{StaticResource AICardStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Spacing="8">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xed0c;" Foreground="#EC4899" FontSize="20"/>
-                            <TextBlock Text="Marketing Wizard" FontFamily="{StaticResource AppFontBold}" FontSize="18"/>
+                    <Grid>
+                        <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xed0c;" Foreground="#EC4899" FontSize="20"/>
+                                <TextBlock Text="Marketing Wizard" FontFamily="{StaticResource AppFontBold}" FontSize="18"/>
+                            </StackPanel>
+                            <TextBlock Text="Konten sosmed instan." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/>
                         </StackPanel>
-                        <TextBlock Text="Buat konten sosmed instan." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                    </StackPanel>
+                        <ToggleButton x:Name="MarketingExpandBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="6" Background="Transparent" BorderThickness="0">
+                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf065;" FontSize="16" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                        </ToggleButton>
+                    </Grid>
 
                     <StackPanel Grid.Row="1" Spacing="12" Margin="0,16">
-                        <TextBox PlaceholderText="Nama Produk (Misal: Donat Lumer)" Text="{Binding MarketingProductName, Mode=TwoWay}"/>
-                        <ComboBox ItemsSource="{Binding Platforms}" SelectedItem="{Binding SelectedPlatform, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
-                        <TextBox Text="{Binding GeneratedCaption, Mode=OneWay}" Height="80" TextWrapping="Wrap" IsReadOnly="True" PlaceholderText="Hasil caption akan muncul di sini..."/>
+                        <TextBox Header="Nama Produk" PlaceholderText="Contoh: Donat Lumer" Text="{Binding MarketingProductName, Mode=TwoWay}" FontFamily="{StaticResource AppFont}"/>
+                        <ComboBox Header="Platform" ItemsSource="{Binding Platforms}" SelectedItem="{Binding SelectedPlatform, Mode=TwoWay}" HorizontalAlignment="Stretch" FontFamily="{StaticResource AppFont}"/>
+
+                        <ScrollViewer MinHeight="120"
+                                      MaxHeight="{Binding IsChecked, ElementName=MarketingExpandBtn, Converter={StaticResource HeightConv}, ConverterParameter='120'}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      BorderBrush="{ThemeResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8">
+                            <controls:MarkdownTextBlock Text="{Binding GeneratedCaption}" 
+                                                        TextWrapping="Wrap" 
+                                                        Background="Transparent"
+                                                        Foreground="{ThemeResource TextPrimaryBrush}"/>
+                        </ScrollViewer>
                     </StackPanel>
 
-                    <Button Grid.Row="2" Command="{Binding CreateCaptionCommand}" Content="Buat Caption" HorizontalAlignment="Stretch"/>
+                    <Button Grid.Row="2" Command="{Binding CreateCaptionCommand}" Content="Buat Caption" HorizontalAlignment="Stretch" Style="{StaticResource ModernButtonStyle}"/>
                 </Grid>
 
             </Grid>

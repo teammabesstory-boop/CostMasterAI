@@ -4,48 +4,120 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     mc:Ignorable="d">
 
-    <Grid Padding="32">
-        <StackPanel Spacing="24" MaxWidth="600" HorizontalAlignment="Left">
+    <Page.Resources>
+        <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
+        <FontFamily x:Key="AppFont">/Assets/Satoshi-Regular.otf#Satoshi</FontFamily>
+        <FontFamily x:Key="AppFontBold">/Assets/Satoshi-Bold.otf#Satoshi</FontFamily>
+        <FontFamily x:Key="AppFontBlack">/Assets/Satoshi-Black.otf#Satoshi</FontFamily>
 
-            <TextBlock Text="Pengaturan Sistem ⚙️" Style="{StaticResource TitleTextBlockStyle}"/>
+        <Style x:Key="PageTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="32"/>
+            <Setter Property="FontFamily" Value="{StaticResource AppFontBlack}"/>
+            <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
+            <Setter Property="CharacterSpacing" Value="-10"/>
+        </Style>
 
-            <StackPanel Spacing="12" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" Padding="20" CornerRadius="8">
-                <TextBlock Text="Konfigurasi AI (Google Gemini)" FontWeight="Bold" Style="{StaticResource SubtitleTextBlockStyle}"/>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+            <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}"/>
+        </Style>
 
-                <TextBlock Text="API Key" Opacity="0.8"/>
+        <Style x:Key="SettingsCardStyle" TargetType="Grid" BasedOn="{StaticResource ModernCardStyle}">
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundBrush}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{ThemeResource CardBorderBrush}"/>
+        </Style>
+    </Page.Resources>
 
-                <PasswordBox Password="{Binding ApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                             PlaceholderText="Tempel API Key Google AI Studio di sini..."
-                             PasswordRevealMode="Peek"/>
+    <ScrollViewer Background="{ThemeResource AppBackgroundBrush}">
+        <Grid Padding="40">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-                <TextBlock Text="Dapatkan Key di aistudio.google.com" FontSize="12" Opacity="0.5" FontStyle="Italic"/>
-
-                <TextBlock Text="Model Version" Opacity="0.8" Margin="0,12,0,0"/>
-                <ComboBox ItemsSource="{Binding AvailableModels}" 
-                          SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
-                          HorizontalAlignment="Stretch"/>
-
-                <TextBlock Text="*Gemini 1.5 Flash direkomendasikan untuk kecepatan." FontSize="12" Opacity="0.5"/>
+            <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,32">
+                <TextBlock Text="Settings &amp; Configuration" Style="{StaticResource PageTitleStyle}"/>
+                <TextBlock Text="Atur koneksi AI dan preferensi aplikasi." Style="{StaticResource SectionHeaderStyle}"/>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Spacing="16">
-                <Button Content="Simpan Pengaturan" 
-                        Command="{Binding SaveSettingsCommand}" 
-                        Style="{StaticResource AccentButtonStyle}"
-                        Width="200"/>
+            <Grid Grid.Row="1" Style="{StaticResource SettingsCardStyle}" HorizontalAlignment="Left" MaxWidth="600">
+                <StackPanel Spacing="20">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf0e7;" FontSize="24" Foreground="{ThemeResource AccentBrush}"/>
+                        <StackPanel>
+                            <TextBlock Text="Google Gemini Integration" FontSize="18" FontFamily="{StaticResource AppFontBold}"/>
+                            <TextBlock Text="Aktifkan fitur Profit Doctor &amp; Marketing Wizard." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
 
-                <TextBlock Text="{Binding StatusMessage}" 
-                           VerticalAlignment="Center" 
-                           Foreground="Green" FontWeight="Bold"/>
-            </StackPanel>
+                    <Rectangle Height="1" Fill="{ThemeResource CardBorderBrush}"/>
 
-            <StackPanel Margin="0,40,0,0" Opacity="0.4">
-                <TextBlock Text="CostMaster AI v1.0.0"/>
-                <TextBlock Text="Developed with WinUI 3 &amp; .NET"/>
-            </StackPanel>
+                    <PasswordBox Header="Google API Key" 
+                                 Password="{Binding GoogleApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                 PlaceholderText="Paste API Key dari Google AI Studio..." 
+                                 PasswordRevealMode="Peek"
+                                 Width="400" HorizontalAlignment="Left"
+                                 FontFamily="{StaticResource AppFont}"/>
 
-        </StackPanel>
-    </Grid>
+                    <ComboBox Header="AI Model" 
+                              ItemsSource="{Binding AvailableModels}" 
+                              SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                              Width="400" HorizontalAlignment="Left"
+                              FontFamily="{StaticResource AppFont}"/>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Info:" FontFamily="{StaticResource AppFontBold}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                        <TextBlock Text="Gemini 1.5 Flash direkomendasikan untuk kecepatan &amp; gratis." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontStyle="Italic"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,8,0,0">
+                        <Button Command="{Binding SaveSettingsCommand}" Style="{StaticResource PrimaryButtonStyle}" Padding="24,8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf0c3;"/>
+                                <TextBlock Text="Simpan Konfigurasi" FontFamily="{StaticResource AppFontBold}"/>
+                            </StackPanel>
+                        </Button>
+
+                        <TextBlock Text="{Binding StatusMessage}" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="{ThemeResource SuccessBrush}" 
+                                   FontFamily="{StaticResource AppFontBold}"/>
+                    </StackPanel>
+
+                    <HyperlinkButton Content="Dapatkan API Key Gratis (Google AI Studio)" NavigateUri="https://aistudio.google.com/app/apikey" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="2" Margin="0,24,0,0" Style="{StaticResource SettingsCardStyle}" HorizontalAlignment="Left" Width="600">
+                <StackPanel Spacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeb93;" FontSize="24" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                        <TextBlock Text="Tentang Aplikasi" FontSize="18" FontFamily="{StaticResource AppFontBold}"/>
+                    </StackPanel>
+
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Image Source="/Assets/Square44x44Logo.scale-200.png" Width="64" Height="64"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                            <TextBlock Text="CostMaster AI" FontSize="16" FontFamily="{StaticResource AppFontBlack}"/>
+                            <TextBlock Text="{Binding AppVersion}" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
+                            <TextBlock Text="Developed with ❤️ using WinUI 3 &amp; .NET 8" FontSize="12" Opacity="0.6"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+
+        </Grid>
+    </ScrollViewer>
 </Page>

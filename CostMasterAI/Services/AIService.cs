@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Linq;
-using System.Collections.Generic; // Wajib untuk List<>
-using CostMasterAI.Core.Models;   // Wajib untuk Recipe & Ingredient
+using System.Collections.Generic;
+using CostMasterAI.Core.Models;
 using Windows.Storage;
 
 namespace CostMasterAI.Services
@@ -16,6 +16,7 @@ namespace CostMasterAI.Services
         private readonly HttpClient _httpClient;
 
         // Template URL Gemini API
+        // {0} akan diganti dengan nama model (misal: gemini-1.5-flash)
         private const string BaseUrlTemplate = "https://generativelanguage.googleapis.com/v1beta/models/{0}:generateContent";
 
         public AIService()
@@ -27,8 +28,11 @@ namespace CostMasterAI.Services
         private (string apiKey, string model) GetSettings()
         {
             var settings = ApplicationData.Current.LocalSettings.Values;
-            var key = settings["ApiKey"] as string ?? "";
-            var model = settings["AiModel"] as string ?? "gemini-1.5-flash"; // Default Model
+
+            // Key harus sesuai SettingsViewModel
+            var key = settings["GoogleApiKey"] as string ?? "";
+            var model = settings["GeminiModelId"] as string ?? "gemini-1.5-flash";
+
             return (key, model);
         }
 
@@ -50,7 +54,7 @@ namespace CostMasterAI.Services
                 2. Tentukan estimasi jumlah pemakaian untuk 1 porsi.
                 3. Tentukan estimasi HARGA PASARAN (IDR) bahan tersebut per kemasan umum.
                 
-                OUTPUT WAJIB FORMAT JSON (Tanpa markdown, tanpa teks lain, langsung kurung siku array):
+                OUTPUT WAJIB FORMAT JSON MURNI (Tanpa markdown ```json, tanpa teks lain):
                 [
                     {{
                         ""ingredient_name"": ""Nama Bahan"",
@@ -63,13 +67,13 @@ namespace CostMasterAI.Services
                 ]
             ";
 
-            return await SendPromptAsync(prompt, apiKey, model);
+            return await SendPromptAsync(prompt, apiKey, model, isJsonExpected: true);
         }
 
         public async Task<string> GenerateMarketingCopyAsync(string recipeName, string ingredients)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
 
             var prompt = $"Buatkan deskripsi makanan yang menggugah selera untuk menu '{recipeName}'. Bahannya: {ingredients}. Gaya bahasa: Gaul, santai, tapi menjual (copywriting). Maksimal 50 kata.";
             return await SendPromptAsync(prompt, apiKey, model);
@@ -82,15 +86,20 @@ namespace CostMasterAI.Services
         public async Task<string> AnalyzeProfitabilityAsync(List<Recipe> recipes)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
 
-            // Kita kirim ringkasan data ke AI agar token tidak jebol
             var sb = new StringBuilder();
             sb.AppendLine("Bertindaklah sebagai Konsultan Keuangan F&B. Berikut adalah data margin resep saya:");
 
-            foreach (var r in recipes.Take(20)) // Batasi 20 resep teratas
+            foreach (var r in recipes.Take(20))
             {
-                sb.AppendLine($"- {r.Name}: HPP Rp{r.CostPerUnit:N0}, Harga Jual Rp{r.ActualSellingPrice:N0}, Margin {(r.ActualSellingPrice > 0 ? ((r.ActualSellingPrice - r.CostPerUnit) / r.ActualSellingPrice * 100) : 0):N1}%");
+                double margin = 0;
+                if (r.ActualSellingPrice > 0)
+                {
+                    margin = (double)((r.ActualSellingPrice - r.CostPerUnit) / r.ActualSellingPrice * 100);
+                }
+
+                sb.AppendLine($"- {r.Name}: HPP Rp{r.CostPerUnit:N0}, Harga Jual Rp{r.ActualSellingPrice:N0}, Margin {margin:N1}%");
             }
 
             sb.AppendLine("\nInstruksi:");
@@ -102,8 +111,7 @@ namespace CostMasterAI.Services
             return await SendPromptAsync(sb.ToString(), apiKey, model);
         }
 
-        // Generate Resep dari Stok Bahan (Smart Chef)
-        public async Task<Recipe> GenerateRecipeFromIngredientsAsync(List<Ingredient> availableIngredients)
+        public async Task<Recipe?> GenerateRecipeFromIngredientsAsync(List<Ingredient> availableIngredients)
         {
             var (apiKey, model) = GetSettings();
             if (string.IsNullOrEmpty(apiKey)) return null;
@@ -115,29 +123,26 @@ namespace CostMasterAI.Services
                 sb.AppendLine($"- {ing.Name}");
             }
             sb.AppendLine("\nInstruksi: Ciptakan SATU resep inovatif yang bisa dibuat dominan menggunakan bahan-bahan di atas. Anda boleh menambahkan bumbu dasar umum (Garam, Gula, Air).");
-            sb.AppendLine("OUTPUT WAJIB JSON dengan struktur berikut (Tanpa markdown):");
+
+            sb.AppendLine("OUTPUT WAJIB JSON MURNI (Tanpa markdown ```json, tanpa penjelasan awal/akhir):");
             sb.AppendLine(@"{ ""name"": ""Nama Resep Keren"", ""description"": ""Deskripsi singkat"", ""yield_qty"": 10, ""items"": [ { ""ingredient_name"": ""Nama Bahan"", ""qty"": 100, ""unit"": ""Gram"" } ] }");
 
-            string jsonResponse = await SendPromptAsync(sb.ToString(), apiKey, model);
+            string jsonResponse = await SendPromptAsync(sb.ToString(), apiKey, model, isJsonExpected: true);
 
             try
             {
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var aiData = JsonSerializer.Deserialize<AiRecipeDataRaw>(jsonResponse, options); // Butuh class helper internal
+                var aiData = JsonSerializer.Deserialize<AiRecipeDataRaw>(jsonResponse, options);
 
                 if (aiData != null)
                 {
-                    var newRecipe = new Recipe
+                    return new Recipe
                     {
                         Name = aiData.Name,
                         Description = aiData.Description,
-                        YieldQty = aiData.Yield_Qty,
+                        YieldQty = aiData.Yield_Qty > 0 ? aiData.Yield_Qty : 1,
                         LastUpdated = DateTime.Now
                     };
-
-                    // Mapping Items (Perlu dicocokkan kembali dengan ID bahan asli di ViewModel nanti)
-                    // Di sini kita return Recipe object polosan dulu
-                    return newRecipe;
                 }
             }
             catch (Exception ex)
@@ -155,7 +160,7 @@ namespace CostMasterAI.Services
         public async Task<string> ForecastSalesAsync(List<Transaction> history)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
 
             var sb = new StringBuilder();
             sb.AppendLine("Berikut adalah riwayat penjualan harian saya selama 1 minggu terakhir:");
@@ -187,7 +192,7 @@ namespace CostMasterAI.Services
         public async Task<string> GenerateMarketingContent(string productName, string platform)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
 
             string prompt = platform switch
             {
@@ -203,7 +208,7 @@ namespace CostMasterAI.Services
         public async Task<string> AuditRecipeCostAsync(Recipe recipe)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
 
             var sb = new StringBuilder();
             sb.AppendLine($"Analisa Food Cost untuk resep bisnis kuliner ini:");
@@ -211,7 +216,6 @@ namespace CostMasterAI.Services
             sb.AppendLine($"Total HPP (Cost): Rp {recipe.CostPerUnit:N0}");
             sb.AppendLine($"Harga Jual (Dine In): Rp {recipe.ActualSellingPrice:N0}");
 
-            // Hitung manual food cost % untuk dikirim ke AI
             decimal fcPercent = 0;
             if (recipe.ActualSellingPrice > 0)
                 fcPercent = (recipe.CostPerUnit / recipe.ActualSellingPrice) * 100;
@@ -225,7 +229,7 @@ namespace CostMasterAI.Services
         public async Task<string> GetSmartSubstitutionsAsync(Recipe recipe)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
 
             var sb = new StringBuilder();
             sb.AppendLine($"Saran substitusi bahan untuk menekan HPP resep '{recipe.Name}':");
@@ -245,7 +249,7 @@ namespace CostMasterAI.Services
         public async Task<string> GetWasteReductionIdeasAsync(Recipe recipe)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
 
             var sb = new StringBuilder();
             sb.AppendLine($"Ide olahan limbah/sisa dari resep '{recipe.Name}':");
@@ -264,7 +268,7 @@ namespace CostMasterAI.Services
         public async Task<string> GenerateSocialMediaCaptionAsync(Recipe recipe, string platform, string tone)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
 
             var sb = new StringBuilder();
             sb.AppendLine($"Buatkan Caption {platform} untuk menu '{recipe.Name}' dengan tone {tone}.");
@@ -275,21 +279,21 @@ namespace CostMasterAI.Services
         public async Task<string> GenerateHypnoticDescriptionAsync(Recipe recipe)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
             return await SendPromptAsync($"Tulis deskripsi menu '{recipe.Name}' dengan teknik NLP Hypnotic Copywriting.", apiKey, model);
         }
 
         public async Task<string> GenerateImagePromptAsync(Recipe recipe)
         {
             var (apiKey, model) = GetSettings();
-            if (string.IsNullOrEmpty(apiKey)) return "[Error: API Key belum diatur]";
+            if (string.IsNullOrEmpty(apiKey)) return "Error: API Key belum diatur";
             return await SendPromptAsync($"Buatkan Image Prompt (Bahasa Inggris) untuk AI Art Generator (Midjourney) agar menghasilkan foto makanan '{recipe.Name}' yang fotorealistik.", apiKey, model);
         }
 
         // ==========================================
         // CORE: HTTP CLIENT KE GEMINI API
         // ==========================================
-        private async Task<string> SendPromptAsync(string prompt, string apiKey, string model)
+        private async Task<string> SendPromptAsync(string prompt, string apiKey, string model, bool isJsonExpected = false)
         {
             try
             {
@@ -304,6 +308,7 @@ namespace CostMasterAI.Services
                 var json = JsonSerializer.Serialize(requestBody);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+                // Construct URL
                 var finalUrl = string.Format(BaseUrlTemplate, model) + $"?key={apiKey}";
 
                 var response = await _httpClient.PostAsync(finalUrl, content);
@@ -311,13 +316,20 @@ namespace CostMasterAI.Services
 
                 if (response.IsSuccessStatusCode)
                 {
+                    // Parsing manual JsonNode untuk struktur Gemini
                     var node = JsonNode.Parse(responseString);
+
+                    // Path: candidates[0] -> content -> parts[0] -> text
                     var result = node?["candidates"]?[0]?["content"]?["parts"]?[0]?["text"]?.ToString();
 
                     if (result != null)
                     {
-                        // Bersihkan markdown
-                        result = result.Replace("```json", "").Replace("```", "").Trim();
+                        // Hanya bersihkan kode blok JSON jika memang mengharapkan JSON murni
+                        // JANGAN bersihkan Markdown (*, #, dll) untuk output teks biasa agar MarkdownTextBlock bisa merendernya
+                        if (isJsonExpected)
+                        {
+                            result = result.Replace("```json", "").Replace("```", "").Trim();
+                        }
                     }
                     return result ?? "";
                 }
@@ -334,13 +346,12 @@ namespace CostMasterAI.Services
             }
         }
 
-        // Helper Class untuk JSON Parsing Internal (Smart Chef)
+        // Helper Class Internal untuk JSON Parsing
         private class AiRecipeDataRaw
         {
-            public string Name { get; set; }
-            public string Description { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
             public int Yield_Qty { get; set; }
-            // Items diabaikan dulu karena mapping ke Ingredient ID butuh logic di ViewModel
         }
     }
 }

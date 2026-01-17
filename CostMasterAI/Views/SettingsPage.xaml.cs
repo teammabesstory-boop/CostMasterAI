@@ -1,6 +1,7 @@
 using CostMasterAI.ViewModels;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace CostMasterAI.Views
 {
@@ -11,7 +12,11 @@ namespace CostMasterAI.Views
         public SettingsPage()
         {
             this.InitializeComponent();
-            ViewModel = App.Current.Services.GetService<SettingsViewModel>();
+
+            // Ambil ViewModel dari DI Container
+            // Menggunakan casting (App) untuk memastikan akses ke properti Services
+            ViewModel = ((App)Application.Current).Services.GetRequiredService<SettingsViewModel>();
+
             this.DataContext = ViewModel;
         }
     }

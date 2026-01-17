@@ -23,74 +23,111 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private bool _isThinking;
         [ObservableProperty] private string _thinkingMessage = "AI sedang berpikir...";
 
-        // --- HASIL ANALISA ---
-        [ObservableProperty] private string _profitAnalysisResult = "Klik tombol 'Audit Profit' untuk memulai analisa margin resep Anda.";
-        [ObservableProperty] private string _salesForecastResult = "Dapatkan prediksi penjualan berdasarkan data historis.";
+        // --- HASIL ANALISA (OUTPUT) ---
+        [ObservableProperty] private string _profitAnalysisResult = "Klik tombol 'Audit Sekarang' untuk analisa.";
+        [ObservableProperty] private string _salesForecastResult = "Klik 'Mulai Prediksi' untuk analisa tren.";
+        [ObservableProperty] private string _recipeResult = "Hasil kreasi resep akan muncul di sini."; // NEW PROPERTY
         [ObservableProperty] private string _generatedCaption = "";
 
         // --- INPUTS ---
         [ObservableProperty] private string _marketingProductName = "";
         [ObservableProperty] private string _selectedPlatform = "Instagram";
-        public List<string> Platforms { get; } = new() { "Instagram", "TikTok", "WhatsApp" };
+        public List<string> Platforms { get; } = new() { "Instagram", "TikTok", "WhatsApp", "Facebook" };
 
         // --- KOLEKSI DATA ---
         public ObservableCollection<Ingredient> LowStockIngredients { get; } = new();
 
-        public AIAssistantViewModel()
+        public AIAssistantViewModel(AppDbContext dbContext)
         {
-            _dbContext = new AppDbContext();
+            _dbContext = dbContext;
             _aiService = new AIService();
             _ = LoadInitialData();
         }
 
         private async Task LoadInitialData()
         {
-            await _dbContext.Database.EnsureCreatedAsync();
+            try
+            {
+                await _dbContext.Database.EnsureCreatedAsync();
 
-            // Load bahan dummy untuk simulasi stok menipis (Logic random)
-            var ingredients = await _dbContext.Ingredients.AsNoTracking().Take(5).ToListAsync();
-            LowStockIngredients.Clear();
-            foreach (var item in ingredients) LowStockIngredients.Add(item);
+                // Ambil bahan yang stoknya > 0 (Tersedia)
+                var ingredients = await _dbContext.Ingredients
+                    .AsNoTracking()
+                    .Where(i => i.CurrentStock > 0)
+                    .OrderByDescending(i => i.CurrentStock)
+                    .Take(10)
+                    .ToListAsync();
+
+                LowStockIngredients.Clear();
+                foreach (var item in ingredients) LowStockIngredients.Add(item);
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error Load Data: {ex.Message}"); }
         }
 
-        // 1. FITUR PROFIT DOCTOR
+        // 1. PROFIT DOCTOR
         [RelayCommand]
         private async Task RunProfitAudit()
         {
             IsThinking = true;
-            ThinkingMessage = "Menganalisa struktur biaya resep...";
+            ThinkingMessage = "Gemini sedang membedah resep...";
             try
             {
-                var recipes = await _dbContext.Recipes.Include(r => r.Items).ThenInclude(i => i.Ingredient).ToListAsync();
+                var recipes = await _dbContext.Recipes
+                    .Include(r => r.Items).ThenInclude(i => i.Ingredient)
+                    .AsNoTracking().ToListAsync();
+
+                if (!recipes.Any())
+                {
+                    ProfitAnalysisResult = "Belum ada data resep.";
+                    return;
+                }
+
                 ProfitAnalysisResult = await _aiService.AnalyzeProfitabilityAsync(recipes);
             }
+            catch (Exception ex) { ProfitAnalysisResult = $"Error: {ex.Message}"; }
             finally { IsThinking = false; }
         }
 
-        // 2. FITUR SMART CHEF (CREATE RECIPE)
+        // 2. SMART INVENTORY CHEF
         [RelayCommand]
         private async Task CreateRecipeFromStock()
         {
+            if (!LowStockIngredients.Any()) return;
+
             IsThinking = true;
-            ThinkingMessage = "Meracik resep dari sisa bahan...";
+            ThinkingMessage = "Chef Gemini sedang meracik menu...";
+
             try
             {
-                var stock = LowStockIngredients.ToList();
-                var newRecipe = await _aiService.GenerateRecipeFromIngredientsAsync(stock);
+                var stockList = LowStockIngredients.ToList();
+                var newRecipe = await _aiService.GenerateRecipeFromIngredientsAsync(stockList);
 
-                // Simpan ke DB
-                _dbContext.Recipes.Add(newRecipe);
-                await _dbContext.SaveChangesAsync();
+                if (newRecipe != null)
+                {
+                    _dbContext.Recipes.Add(newRecipe);
+                    await _dbContext.SaveChangesAsync();
+                    WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Created"));
 
-                // Kabari halaman Resep
-                WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Created"));
+                    // Tampilkan di properti khusus RecipeResult
+                    RecipeResult = $@"✅ BERHASIL DITAMBAHKAN!
+Nama: {newRecipe.Name}
+Yield: {newRecipe.YieldQty} porsi
 
-                ProfitAnalysisResult = $"✅ Sukses! Resep '{newRecipe.Name}' telah ditambahkan ke Database Resep.";
+Deskripsi:
+{newRecipe.Description}
+
+*Detail bahan telah disesuaikan dengan stok.*";
+                }
+                else
+                {
+                    RecipeResult = "Gagal membuat resep. Silakan coba lagi.";
+                }
             }
+            catch (Exception ex) { RecipeResult = $"Error: {ex.Message}"; }
             finally { IsThinking = false; }
         }
 
-        // 3. FITUR SALES FORECAST
+        // 3. SALES FORECAST
         [RelayCommand]
         private async Task PredictSales()
         {
@@ -99,23 +136,29 @@ namespace CostMasterAI.ViewModels
             try
             {
                 var history = await _dbContext.Transactions.AsNoTracking().ToListAsync();
+                if (history.Count < 5)
+                {
+                    SalesForecastResult = "Data transaksi kurang (min 5).";
+                    return;
+                }
                 SalesForecastResult = await _aiService.ForecastSalesAsync(history);
             }
+            catch (Exception ex) { SalesForecastResult = $"Error: {ex.Message}"; }
             finally { IsThinking = false; }
         }
 
-        // 4. FITUR MARKETING WIZARD
+        // 4. MARKETING WIZARD
         [RelayCommand]
         private async Task CreateCaption()
         {
             if (string.IsNullOrWhiteSpace(MarketingProductName)) return;
-
             IsThinking = true;
             ThinkingMessage = "Menulis copy marketing...";
             try
             {
                 GeneratedCaption = await _aiService.GenerateMarketingContent(MarketingProductName, SelectedPlatform);
             }
+            catch (Exception ex) { GeneratedCaption = $"Error: {ex.Message}"; }
             finally { IsThinking = false; }
         }
     }

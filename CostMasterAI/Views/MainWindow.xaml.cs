@@ -1,23 +1,31 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 using System;
-using CostMasterAI.Helpers; // Helper untuk Theme
+using CostMasterAI.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CostMasterAI.Views
 {
     public sealed partial class MainWindow : Window
     {
+        public MainViewModel ViewModel { get; }
+
         public MainWindow()
         {
             this.InitializeComponent();
 
-            // Set Title Bar Custom
+            // Setup Title Bar Custom
             ExtendsContentIntoTitleBar = true;
             SetTitleBar(AppTitleBar);
 
+            // Ambil ViewModel dari DI
+            // Menggunakan casting aman untuk akses Services
+            ViewModel = ((App)Application.Current).Services.GetRequiredService<MainViewModel>();
+
             // Default ke Dashboard saat aplikasi dibuka
+            ContentFrame.Navigate(typeof(DashboardPage));
             NavView.SelectedItem = NavView.MenuItems[0];
-            NavView_Navigate("dashboard", new Microsoft.UI.Xaml.Media.Animation.EntranceNavigationTransitionInfo());
         }
 
         private void NavView_Loaded(object sender, RoutedEventArgs e)
@@ -27,23 +35,21 @@ namespace CostMasterAI.Views
 
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
+            // 1. Handle Built-in Settings Item (Tombol Gerigi di Bawah)
+            // PERBAIKAN: Gunakan IsSettingsSelected (bukan IsSettingsInvoked) untuk event SelectionChanged
             if (args.IsSettingsSelected)
             {
-                // Navigasi ke halaman Settings (jika ada)
-                // ContentFrame.Navigate(typeof(SettingsPage));
+                NavView_Navigate("settings", args.RecommendedNavigationTransitionInfo);
             }
-            else
+            // 2. Handle Menu Item Biasa
+            else if (args.SelectedItemContainer != null)
             {
-                var selectedItem = args.SelectedItemContainer as NavigationViewItem;
-                if (selectedItem != null)
-                {
-                    string navItemTag = selectedItem.Tag.ToString();
-                    NavView_Navigate(navItemTag, args.RecommendedNavigationTransitionInfo);
-                }
+                var navItemTag = args.SelectedItemContainer.Tag.ToString();
+                NavView_Navigate(navItemTag, args.RecommendedNavigationTransitionInfo);
             }
         }
 
-        private void NavView_Navigate(string navItemTag, Microsoft.UI.Xaml.Media.Animation.NavigationTransitionInfo transitionInfo)
+        private void NavView_Navigate(string navItemTag, NavigationTransitionInfo transitionInfo)
         {
             Type _page = null;
 
@@ -64,20 +70,18 @@ namespace CostMasterAI.Views
                 case "reports":
                     _page = typeof(ReportsPage);
                     break;
-
-                // --- FIX: INTEGRASI AI ASSISTANT ---
                 case "ai_assistant":
                     _page = typeof(AIAssistantPage);
                     break;
-
-                case "profile":
-                    // _page = typeof(ProfilePage); // Uncomment jika sudah ada halaman profile
+                // --- NAVIGASI SETTINGS ---
+                case "settings":
+                    _page = typeof(SettingsPage);
                     break;
             }
 
             // Hindari navigasi ulang ke halaman yang sama
             var preNavPageType = ContentFrame.CurrentSourcePageType;
-            if (_page != null && !Type.Equals(preNavPageType, _page))
+            if (_page != null && preNavPageType != _page)
             {
                 ContentFrame.Navigate(_page, null, transitionInfo);
             }
@@ -85,7 +89,7 @@ namespace CostMasterAI.Views
 
         private void ToggleThemeButton_Click(object sender, RoutedEventArgs e)
         {
-            // Simple Theme Toggler menggunakan Helper
+            // Simple Theme Toggler
             if (ContentFrame.XamlRoot != null)
             {
                 var currentTheme = ContentFrame.ActualTheme;
