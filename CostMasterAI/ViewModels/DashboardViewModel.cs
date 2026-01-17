@@ -1,6 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging; // Wajib untuk integrasi
+using CommunityToolkit.Mvvm.Messaging;
+using CostMasterAI.Core.Services;
+using CostMasterAI.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -8,21 +10,17 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using CostMasterAI.Core.Models;
-using CostMasterAI.Core.Services;
-using CostMasterAI.Helpers; // Akses AppMessages
-using System.Text.RegularExpressions; // Penting untuk membaca tag harga
+using System.Text.RegularExpressions;
+
+// --- LIVECHARTS 2 IMPORTS ---
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using SkiaSharp;
 
 namespace CostMasterAI.ViewModels
 {
-    // Helper Class untuk Chart/Grafik
-    public class CostStructureItem
-    {
-        public string Category { get; set; } = string.Empty;
-        public decimal Amount { get; set; }
-        public double Percentage { get; set; }
-        public string Color { get; set; } = "#CCCCCC";
-    }
-
+    // Helper class untuk Pareto List (Top Cost Driver)
     public class TopCostDriver
     {
         public string Name { get; set; } = string.Empty;
@@ -35,41 +33,38 @@ namespace CostMasterAI.ViewModels
         private readonly AppDbContext _dbContext;
 
         // ==========================================
-        // 1. DATA KEUANGAN (INTEGRASI BARU)
+        // 1. DATA KEUANGAN
         // ==========================================
-        [ObservableProperty] private decimal _currentRevenue;      // Pemasukan Bulan Ini (Uang Masuk Real)
-        [ObservableProperty] private decimal _currentExpense;      // Pengeluaran Bulan Ini
-        [ObservableProperty] private decimal _currentNetProfit;    // Profit Bulan Ini
-        [ObservableProperty] private decimal _cashFlowBalance;     // Saldo Total (Semua Waktu)
+        [ObservableProperty] private decimal _currentRevenue;
+        [ObservableProperty] private decimal _currentExpense;
+        [ObservableProperty] private decimal _currentNetProfit;
+        [ObservableProperty] private decimal _cashFlowBalance;
 
-        // --- FITUR BARU: Opportunity Loss (Selisih Harga) ---
-        [ObservableProperty] private decimal _potentialRevenue; // Pendapatan Seharusnya (Harga Normal)
-        [ObservableProperty] private decimal _revenueGap;       // Selisih (Diskon/Promo/Bundling)
-
-        public ObservableCollection<Transaction> RecentTransactions { get; } = new();
+        // Opportunity Loss
+        [ObservableProperty] private decimal _potentialRevenue;
+        [ObservableProperty] private decimal _revenueGap;
 
         // ==========================================
-        // 2. DATA PRODUKSI & RESEP
+        // 2. LIVECHARTS PROPERTIES (VISUALISASI)
+        // ==========================================
+        // Menggantikan ObservableCollection manual dengan ISeries array untuk grafik
+        [ObservableProperty] private ISeries[] _costStructureSeries;
+
+        // ==========================================
+        // 3. DATA PRODUKSI & METRICS
         // ==========================================
         [ObservableProperty] private int _totalRecipesCount;
         [ObservableProperty] private int _totalIngredientsCount;
-        [ObservableProperty] private decimal _totalProductionCost;
+        [ObservableProperty] private decimal _totalProductionCost; // Inventory Value
         [ObservableProperty] private string _globalGrossProfitMargin = "0%";
         [ObservableProperty] private int _efficiencyScore = 100;
-        [ObservableProperty] private string _efficiencyStatus = "Excellent";
+        [ObservableProperty] private string _efficiencyStatus = "Ready";
         [ObservableProperty] private string _starMenuName = "-";
 
-        // Collections untuk Grafik & Tabel
-        public ObservableCollection<CostStructureItem> CostStructure { get; } = new();
+        // Pareto Items (Masih pakai List karena ditampilkan di Tabel)
         public ObservableCollection<TopCostDriver> TopCostDrivers { get; } = new();
 
-        // Product Matrix Collections
-        public ObservableCollection<Recipe> StarMenus { get; } = new();
-        public ObservableCollection<Recipe> CashCowMenus { get; } = new();
-        public ObservableCollection<Recipe> PuzzleMenus { get; } = new();
-        public ObservableCollection<Recipe> DogMenus { get; } = new();
-
-        // Counters
+        // BCG Matrix Counters
         [ObservableProperty] private int _starProductsCount;
         [ObservableProperty] private int _cashCowCount;
         [ObservableProperty] private int _puzzleCount;
@@ -79,32 +74,26 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private bool _isLoading;
         [ObservableProperty] private string _statusMessage = "Ready";
 
-        public DashboardViewModel()
+        public DashboardViewModel(AppDbContext dbContext)
         {
-            _dbContext = new AppDbContext();
+            _dbContext = dbContext;
 
-            // --- INTEGRASI SISTEM PESAN (REAL-TIME UPDATE) ---
+            // Inisialisasi Chart Kosong agar tidak null di XAML
+            CostStructureSeries = Array.Empty<ISeries>();
 
-            // 1. Dengar Perubahan Transaksi (Update Revenue/Profit/Gap)
+            // --- INTEGRASI REAL-TIME ---
             WeakReferenceMessenger.Default.Register<TransactionsChangedMessage>(this, (r, m) =>
-            {
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData());
-            });
+                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData()));
 
-            // 2. Dengar Perubahan Resep (Update Total Produk & Inventory Value)
             WeakReferenceMessenger.Default.Register<RecipesChangedMessage>(this, (r, m) =>
-            {
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData());
-            });
+                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData()));
 
-            // 3. Dengar Perubahan Bahan (Update Total Bahan)
             WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
-            {
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData());
-            });
+                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData()));
+
+            _ = LoadDashboardData();
         }
 
-        // Method ini dipanggil dari DashboardPage.xaml.cs saat halaman dibuka
         [RelayCommand]
         public async Task LoadDashboardData()
         {
@@ -114,63 +103,47 @@ namespace CostMasterAI.ViewModels
 
             try
             {
-                // Pastikan DB Siap
                 await _dbContext.Database.EnsureCreatedAsync();
 
                 // ---------------------------------------------------------
-                // STEP 1: LOAD DATA KEUANGAN & PARSING SELISIH HARGA
+                // STEP 1: LOAD DATA KEUANGAN
                 // ---------------------------------------------------------
                 var allTransactions = await _dbContext.Transactions.AsNoTracking().ToListAsync();
 
-                // Hitung Saldo Total (Semua Waktu)
+                // Saldo Kas Total
                 var totalIncome = allTransactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
                 var totalExpense = allTransactions.Where(t => t.Type == "Expense").Sum(t => t.Amount);
                 CashFlowBalance = totalIncome - totalExpense;
 
-                // Hitung Data Bulan Ini
+                // Data Bulan Ini
                 var now = DateTime.Now;
                 var startMonth = new DateTime(now.Year, now.Month, 1);
                 var nextMonth = startMonth.AddMonths(1);
-
                 var monthTrx = allTransactions.Where(t => t.Date >= startMonth && t.Date < nextMonth).ToList();
 
                 CurrentRevenue = monthTrx.Where(t => t.Type == "Income").Sum(t => t.Amount);
                 CurrentExpense = monthTrx.Where(t => t.Type == "Expense").Sum(t => t.Amount);
                 CurrentNetProfit = CurrentRevenue - CurrentExpense;
 
-                // --- LOGIC DETEKSI SELISIH HARGA (NEW) ---
-                // Kita cari tag [Std:ANGKA] di deskripsi transaksi bulan ini
-                // Tag ini dibuat otomatis oleh ReportsViewModel saat menjual produk
+                // Analisa Opportunity Loss (Selisih Harga Standar vs Aktual)
                 decimal calculatedPotentialRevenue = 0;
-
                 foreach (var trx in monthTrx.Where(t => t.Type == "Income"))
                 {
-                    // Regex mencari pattern [Std:12345]
                     var match = Regex.Match(trx.Description ?? "", @"\[Std:(\d+)\]");
                     if (match.Success && decimal.TryParse(match.Groups[1].Value, out decimal stdPrice))
                     {
-                        // Jika ada tag standar, gunakan harga standar untuk potensi revenue
                         calculatedPotentialRevenue += stdPrice;
                     }
                     else
                     {
-                        // Jika tidak ada tag (input manual biasa), asumsi harga standar = harga jual
                         calculatedPotentialRevenue += trx.Amount;
                     }
                 }
-
                 PotentialRevenue = calculatedPotentialRevenue;
-                RevenueGap = PotentialRevenue - CurrentRevenue; // Selisih (Diskon/Promo)
-
-                // Populate 5 Transaksi Terakhir
-                RecentTransactions.Clear();
-                foreach (var item in allTransactions.OrderByDescending(t => t.Date).Take(5))
-                {
-                    RecentTransactions.Add(item);
-                }
+                RevenueGap = PotentialRevenue - CurrentRevenue;
 
                 // ---------------------------------------------------------
-                // STEP 2: LOAD DATA PRODUKSI (RECIPES & INGREDIENTS)
+                // STEP 2: LOAD DATA PRODUKSI & ANALISA STRUKTUR BIAYA
                 // ---------------------------------------------------------
                 var recipes = await _dbContext.Recipes
                     .AsNoTracking()
@@ -183,8 +156,80 @@ namespace CostMasterAI.ViewModels
 
                 if (recipes.Any())
                 {
+                    // --- A. COST STRUCTURE CHART (PIE CHART) ---
+                    // Menghitung total komposisi biaya dari seluruh resep aktif
+                    decimal totalDough = 0, totalTopping = 0, totalPack = 0, totalOverhead = 0;
+
+                    foreach (var r in recipes)
+                    {
+                        totalDough += r.Items.Where(i => i.UsageCategory == "Main").Sum(i => i.CalculatedCost);
+                        totalTopping += r.Items.Where(i => i.UsageCategory == "Support").Sum(i => i.CalculatedCost);
+                        totalPack += r.Items.Where(i => i.UsageCategory == "Packaging").Sum(i => i.CalculatedCost);
+                        totalOverhead += (r.TotalOverheadCost + r.TotalLaborCost);
+                    }
+
+                    // Konfigurasi LiveCharts Series
+                    CostStructureSeries = new ISeries[]
+                    {
+                        new PieSeries<decimal>
+                        {
+                            Values = new decimal[] { totalDough },
+                            Name = "Bahan Utama",
+                            InnerRadius = 60,
+                            Fill = new SolidColorPaint(SKColors.DodgerBlue),
+                            DataLabelsSize = 12,
+                            DataLabelsPaint = new SolidColorPaint(SKColors.White)
+                        },
+                        new PieSeries<decimal>
+                        {
+                            Values = new decimal[] { totalTopping },
+                            Name = "Topping",
+                            InnerRadius = 60,
+                            Fill = new SolidColorPaint(SKColors.Orange)
+                        },
+                        new PieSeries<decimal>
+                        {
+                            Values = new decimal[] { totalPack },
+                            Name = "Kemasan",
+                            InnerRadius = 60,
+                            Fill = new SolidColorPaint(SKColors.MediumPurple)
+                        },
+                        new PieSeries<decimal>
+                        {
+                            Values = new decimal[] { totalOverhead },
+                            Name = "Overhead",
+                            InnerRadius = 60,
+                            Fill = new SolidColorPaint(SKColors.Crimson)
+                        }
+                    };
+
+                    // --- B. PARETO (TOP COST DRIVERS) ---
+                    TopCostDrivers.Clear();
+                    decimal grandTotalMaterial = totalDough + totalTopping + totalPack;
+
+                    var materialDrivers = recipes.SelectMany(r => r.Items)
+                        .GroupBy(i => i.Ingredient?.Name ?? "Unknown")
+                        .Select(g => new
+                        {
+                            Name = g.Key,
+                            TotalCost = g.Sum(x => x.CalculatedCost)
+                        })
+                        .OrderByDescending(x => x.TotalCost)
+                        .Take(5)
+                        .ToList();
+
+                    foreach (var driver in materialDrivers)
+                    {
+                        TopCostDrivers.Add(new TopCostDriver
+                        {
+                            Name = driver.Name,
+                            TotalCostContribution = driver.TotalCost,
+                            Percentage = grandTotalMaterial > 0 ? $"{(driver.TotalCost / grandTotalMaterial * 100):F1}%" : "0%"
+                        });
+                    }
+
+                    // --- C. EXECUTIVE METRICS ---
                     CalculateExecutiveSummary(recipes);
-                    CalculateCostStructure(recipes);
                     CalculateProductMatrix(recipes);
                 }
                 else
@@ -192,11 +237,11 @@ namespace CostMasterAI.ViewModels
                     ResetProductionStats();
                 }
 
-                StatusMessage = $"Update: {DateTime.Now:HH:mm}";
+                StatusMessage = $"Updated: {DateTime.Now:HH:mm}";
             }
             catch (Exception ex)
             {
-                StatusMessage = "Error memuat data.";
+                StatusMessage = "Error loading data.";
                 System.Diagnostics.Debug.WriteLine($"DASHBOARD ERROR: {ex.Message}");
             }
             finally
@@ -205,14 +250,18 @@ namespace CostMasterAI.ViewModels
             }
         }
 
-        // --- LOGIC PERHITUNGAN PRODUKSI ---
-
         private void CalculateExecutiveSummary(List<Recipe> recipes)
         {
-            // Total HPP Global (Estimasi nilai inventory produk jadi)
+            // Inventory Value (Nilai Stok Bahan di Gudang)
+            // Note: Idealnya ambil dari Ingredient.CurrentStock, tapi di sini kita pakai estimasi produksi dulu
+            // Jika mau real inventory value:
+            // var ingredients = await _dbContext.Ingredients.ToListAsync();
+            // TotalProductionCost = ingredients.Sum(i => (decimal)i.CurrentStock * i.PricePerUnit);
+
+            // Untuk sementara pakai Total Batch Cost dari resep sebagai indikator aset produksi
             TotalProductionCost = recipes.Sum(r => r.TotalBatchCost);
 
-            // Rata-rata Margin Resep
+            // Gross Profit Margin Global
             var validRecipes = recipes.Where(r => r.ActualSellingPrice > 0).ToList();
             if (validRecipes.Any())
             {
@@ -228,68 +277,25 @@ namespace CostMasterAI.ViewModels
                 GlobalGrossProfitMargin = "0%";
             }
 
-            // Efficiency Score (Base on Cooking Loss)
-            double avgCookingLoss = recipes.Any() ? recipes.Average(r => r.CookingLossPercent) : 0;
+            // Efficiency Score (based on Cooking Loss)
+            double avgCookingLoss = recipes.Average(r => r.CookingLossPercent);
             double score = 100 - (avgCookingLoss * 2.0);
-            score = Math.Max(0, Math.Min(100, score));
-            EfficiencyScore = (int)score;
+            EfficiencyScore = (int)Math.Max(0, Math.Min(100, score));
 
-            if (EfficiencyScore >= 90) EfficiencyStatus = "World Class 🏆";
+            if (EfficiencyScore >= 90) EfficiencyStatus = "Excellent ✨";
             else if (EfficiencyScore >= 75) EfficiencyStatus = "Good ✅";
             else if (EfficiencyScore >= 60) EfficiencyStatus = "Warning ⚠️";
             else EfficiencyStatus = "Critical 🚨";
         }
 
-        private void CalculateCostStructure(List<Recipe> recipes)
-        {
-            CostStructure.Clear();
-            TopCostDrivers.Clear();
-
-            decimal totalMaterial = recipes.Sum(r => r.TotalMaterialCost);
-            decimal totalLabor = recipes.Sum(r => r.TotalLaborCost);
-            decimal totalOverhead = recipes.Sum(r => r.TotalOverheadCost);
-            decimal grandTotal = totalMaterial + totalLabor + totalOverhead;
-
-            if (grandTotal == 0) return;
-
-            // Chart Data
-            CostStructure.Add(new CostStructureItem { Category = "Bahan Baku", Amount = totalMaterial, Percentage = (double)(totalMaterial / grandTotal) * 100, Color = "#10B981" });
-            CostStructure.Add(new CostStructureItem { Category = "Tenaga Kerja", Amount = totalLabor, Percentage = (double)(totalLabor / grandTotal) * 100, Color = "#3B82F6" });
-            CostStructure.Add(new CostStructureItem { Category = "Overhead", Amount = totalOverhead, Percentage = (double)(totalOverhead / grandTotal) * 100, Color = "#F59E0B" });
-
-            // Top Cost Drivers (Pareto Analysis)
-            var materialDrivers = recipes.SelectMany(r => r.Items)
-                .GroupBy(i => i.Ingredient?.Name ?? "Unknown")
-                .Select(g => new
-                {
-                    Name = g.Key,
-                    TotalCost = g.Sum(x => x.CalculatedCost)
-                })
-                .OrderByDescending(x => x.TotalCost)
-                .Take(5)
-                .ToList();
-
-            foreach (var driver in materialDrivers)
-            {
-                TopCostDrivers.Add(new TopCostDriver
-                {
-                    Name = driver.Name,
-                    TotalCostContribution = driver.TotalCost,
-                    Percentage = totalMaterial > 0 ? $"{(driver.TotalCost / totalMaterial * 100):F1}%" : "0%"
-                });
-            }
-        }
-
         private void CalculateProductMatrix(List<Recipe> recipes)
         {
-            StarMenus.Clear(); CashCowMenus.Clear(); PuzzleMenus.Clear(); DogMenus.Clear();
             StarProductsCount = 0; CashCowCount = 0; PuzzleCount = 0; DogCount = 0;
 
             if (!recipes.Any()) return;
 
             double avgVolume = recipes.Average(r => r.YieldQty);
             double targetMargin = 40.0;
-
             Recipe? bestPerformer = null;
             decimal maxProfitVal = -1;
 
@@ -302,27 +308,12 @@ namespace CostMasterAI.ViewModels
                 bool isHighMargin = margin >= targetMargin;
                 bool isHighVolume = r.YieldQty >= avgVolume;
 
-                if (isHighMargin && isHighVolume)
-                {
-                    StarMenus.Add(r);
-                    StarProductsCount++;
-                }
-                else if (!isHighMargin && isHighVolume)
-                {
-                    CashCowMenus.Add(r);
-                    CashCowCount++;
-                }
-                else if (isHighMargin && !isHighVolume)
-                {
-                    PuzzleMenus.Add(r);
-                    PuzzleCount++;
-                }
-                else
-                {
-                    DogMenus.Add(r);
-                    DogCount++;
-                }
+                if (isHighMargin && isHighVolume) StarProductsCount++;
+                else if (!isHighMargin && isHighVolume) CashCowCount++;
+                else if (isHighMargin && !isHighVolume) PuzzleCount++;
+                else DogCount++;
 
+                // Cari Star Menu (Profit Terbesar)
                 decimal estimatedProfit = (r.ActualSellingPrice - r.CostPerUnit) * (decimal)r.YieldQty;
                 if (estimatedProfit > maxProfitVal)
                 {
@@ -341,10 +332,8 @@ namespace CostMasterAI.ViewModels
             EfficiencyScore = 100;
             EfficiencyStatus = "No Data";
             StarMenuName = "-";
-
-            CostStructure.Clear();
+            CostStructureSeries = Array.Empty<ISeries>();
             TopCostDrivers.Clear();
-            StarMenus.Clear(); CashCowMenus.Clear(); PuzzleMenus.Clear(); DogMenus.Clear();
             StarProductsCount = 0; CashCowCount = 0; PuzzleCount = 0; DogCount = 0;
         }
     }

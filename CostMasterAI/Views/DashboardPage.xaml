@@ -7,16 +7,15 @@
     
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:ui="using:CommunityToolkit.WinUI.Controls"
-    xmlns:ani="using:CommunityToolkit.WinUI.Animations"
     xmlns:helpers="using:CostMasterAI.Helpers"
+    
+    xmlns:lvc="using:LiveChartsCore.SkiaSharpView.WinUI"
     
     mc:Ignorable="d">
 
     <Page.Resources>
         <helpers:CurrencyConverter x:Key="MoneyConv"/>
         <helpers:BoolToVisibilityConverter x:Key="BoolVisConv"/>
-        <helpers:PercentageToWidthConv x:Key="PercentageToWidthConv"/>
-        <helpers:DateConverter x:Key="DateConv"/>
 
         <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
         <FontFamily x:Key="AppFont">/Assets/Satoshi-Regular.otf#Satoshi</FontFamily>
@@ -231,6 +230,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Spacing="24">
+
                     <Grid Style="{StaticResource ModernCardStyle}" Padding="24" Background="{ThemeResource CardBackgroundBrush}" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource CardBorderBrush}">
                         <StackPanel Spacing="20">
                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -238,27 +238,13 @@
                                 <TextBlock Text="Cost Structure Breakdown" FontSize="16" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
                             </StackPanel>
 
-                            <ItemsControl ItemsSource="{Binding CostStructure}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,0,0,16">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-                                            <Grid Margin="0,0,0,8">
-                                                <TextBlock Text="{Binding Category}" FontFamily="{StaticResource AppFontBold}" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}"/>
-                                                <TextBlock Text="{Binding Amount, Converter={StaticResource MoneyConv}}" HorizontalAlignment="Right" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                            </Grid>
-                                            <Grid Grid.Row="1" Height="8" Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="4">
-                                                <Grid HorizontalAlignment="Left" Height="8" CornerRadius="4" 
-                                                      Background="{Binding Color}" 
-                                                      Width="{Binding Percentage, Converter={StaticResource PercentageToWidthConv}, ConverterParameter='3.0'}"/>
-                                            </Grid>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                            <Grid Height="250">
+                                <lvc:PieChart Series="{Binding CostStructureSeries}" 
+                                              LegendPosition="Right"
+                                              InitialRotation="-90"
+                                              TooltipPosition="Center">
+                                </lvc:PieChart>
+                            </Grid>
                         </StackPanel>
                     </Grid>
 

@@ -7,7 +7,8 @@
     
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:helpers="using:CostMasterAI.Helpers"
-    xmlns:vm="using:CostMasterAI.ViewModels"
+    
+    xmlns:lvc="using:LiveChartsCore.SkiaSharpView.WinUI"
     
     mc:Ignorable="d">
 
@@ -277,30 +278,16 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,24">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12">
                         <TextBlock Text="Grafik Pemasukan (7 Hari)" FontSize="16" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
                     </StackPanel>
 
-                    <ItemsControl Grid.Row="1" ItemsSource="{Binding SalesChartData}" VerticalAlignment="Bottom">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="24"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel VerticalAlignment="Bottom" Spacing="8">
-                                    <Border Background="{ThemeResource TextPrimaryBrush}" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center" Opacity="0.8">
-                                        <TextBlock Text="{Binding Amount, Converter={StaticResource MoneyConv}}" FontSize="10" Foreground="{ThemeResource AppBackgroundBrush}" FontFamily="{StaticResource AppFontBold}"/>
-                                    </Border>
-                                    <Grid Width="32" Height="200" VerticalAlignment="Bottom">
-                                        <Rectangle Width="32" Height="{Binding Value}" VerticalAlignment="Bottom" RadiusX="4" RadiusY="4" Fill="{ThemeResource AccentBrush}" Opacity="0.9"/>
-                                    </Grid>
-                                    <TextBlock Text="{Binding Label}" HorizontalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFontMedium}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <lvc:CartesianChart Grid.Row="1"
+                                        Series="{Binding SalesSeries}"
+                                        XAxes="{Binding XAxes}"
+                                        YAxes="{Binding YAxes}"
+                                        TooltipPosition="Top">
+                    </lvc:CartesianChart>
                 </Grid>
 
                 <Grid Grid.Column="1" Style="{StaticResource ReportCardStyle}">
