@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using CostMasterAI.Services;
 using CostMasterAI.Helpers;
 using CostMasterAI.Core.Services;
@@ -77,6 +78,7 @@ namespace CostMasterAI.ViewModels
         [NotifyPropertyChangedFor(nameof(EstimatedProfitPerUnit))]
         private double _wasteBufferPercent = 5.0;
 
+        // Flag untuk mencegah infinite loop (Harga -> Margin -> Harga -> Margin...)
         private bool _isUpdatingFromPrice = false;
 
         // 2. Target Margin (Slider)
@@ -87,8 +89,10 @@ namespace CostMasterAI.ViewModels
         [NotifyPropertyChangedFor(nameof(BreakEvenPointQty))]
         private double _targetMarginPercent = 40.0;
 
+        // Trigger saat Slider Margin digeser user
         partial void OnTargetMarginPercentChanged(double value)
         {
+            // Jika sedang update dari harga manual, jangan hitung harga lagi (biar tidak konflik)
             if (_isUpdatingFromPrice) return;
 
             if (FinalHppPerUnit > 0)
@@ -97,9 +101,14 @@ namespace CostMasterAI.ViewModels
                 if (marginFactor <= 0.01m) marginFactor = 0.01m;
 
                 decimal preTaxPrice = FinalHppPerUnit / marginFactor;
-                decimal taxAmount = preTaxPrice * (decimal)(TaxPercent / 100.0);
+                decimal taxFactor = 1 + (decimal)(TaxPercent / 100.0);
 
-                _manualSellingPriceInput = RoundUpToNearestHundred(preTaxPrice + taxAmount).ToString("F0");
+                // Harga Jual Akhir = Harga Sebelum Pajak + Pajak
+                // ATAU: Harga Jual Akhir = Harga Sebelum Pajak * Faktor Pajak
+                // Logic lama Anda: preTaxPrice + taxAmount. Mari kita konsistenkan.
+                decimal finalPrice = preTaxPrice * taxFactor;
+
+                _manualSellingPriceInput = RoundUpToNearestHundred(finalPrice).ToString("F0");
                 OnPropertyChanged(nameof(ManualSellingPriceInput));
             }
         }
@@ -111,36 +120,53 @@ namespace CostMasterAI.ViewModels
 
         partial void OnTaxPercentChanged(double value)
         {
+            // Recalculate harga jual jika pajak berubah, pertahankan margin
             OnTargetMarginPercentChanged(TargetMarginPercent);
         }
 
-        // 4. Manual Selling Price
+        // 4. Manual Selling Price (Input Text Box)
         [ObservableProperty]
         private string _manualSellingPriceInput = "0";
+
+        // FIX: Trigger saat User mengetik Harga Manual dan tekan Enter/LostFocus
+        partial void OnManualSellingPriceInputChanged(string value)
+        {
+            RecalculateMarginFromPrice();
+        }
 
         [RelayCommand]
         private void RecalculateMarginFromPrice()
         {
-            if (!decimal.TryParse(ManualSellingPriceInput, out decimal price) || price <= 0 || FinalHppPerUnit <= 0) return;
+            if (!decimal.TryParse(ManualSellingPriceInput, out decimal finalPrice) || finalPrice <= 0 || FinalHppPerUnit <= 0) return;
 
+            // Set flag agar perubahan Margin TIDAK mengubah balik Harga Jual
             _isUpdatingFromPrice = true;
 
-            decimal taxFactor = 1 + (decimal)(TaxPercent / 100.0);
-            decimal cleanPrice = price / taxFactor;
-
-            if (cleanPrice > 0)
+            try
             {
-                decimal newMarginDecimal = (cleanPrice - FinalHppPerUnit) / cleanPrice;
-                double newMarginPercent = (double)(newMarginDecimal * 100);
+                // Hitung mundur: Harga Jual -> Harga Sebelum Pajak -> Margin
+                decimal taxFactor = 1 + (decimal)(TaxPercent / 100.0);
+                decimal pricePreTax = finalPrice / taxFactor;
 
-                if (newMarginPercent < 0) newMarginPercent = 0;
-                if (newMarginPercent > 99.9) newMarginPercent = 99.9;
+                if (pricePreTax > 0)
+                {
+                    // Rumus Margin: (HargaJual - HPP) / HargaJual
+                    decimal marginDecimal = (pricePreTax - FinalHppPerUnit) / pricePreTax;
+                    double newMarginPercent = (double)(marginDecimal * 100);
 
-                TargetMarginPercent = Math.Round(newMarginPercent, 1);
+                    // Batasi agar slider tidak error
+                    if (newMarginPercent < 0) newMarginPercent = 0;
+                    if (newMarginPercent > 99.9) newMarginPercent = 99.9;
+
+                    TargetMarginPercent = Math.Round(newMarginPercent, 1);
+                }
+            }
+            finally
+            {
+                _isUpdatingFromPrice = false;
             }
 
-            _isUpdatingFromPrice = false;
-
+            // Update UI properties lain
             OnPropertyChanged(nameof(EstimatedProfitPerUnit));
             OnPropertyChanged(nameof(EstimatedProfitPerBatch));
             OnPropertyChanged(nameof(BreakEvenPointQty));
@@ -344,6 +370,13 @@ namespace CostMasterAI.ViewModels
         {
             _dbContext = new AppDbContext();
             _aiService = new AIService();
+
+            // INTEGRASI: Dengarkan perubahan harga dari halaman Bahan Baku
+            WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
+            {
+                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDataAsync());
+            });
+
             _ = LoadDataAsync();
         }
 
@@ -351,6 +384,12 @@ namespace CostMasterAI.ViewModels
         {
             _dbContext = dbContext;
             _aiService = aiService;
+
+            WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
+            {
+                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDataAsync());
+            });
+
             _ = LoadDataAsync();
         }
 
@@ -378,7 +417,6 @@ namespace CostMasterAI.ViewModels
         private async Task ReloadRecipesList()
         {
             Recipes.Clear();
-            // Membersihkan tracker untuk mencegah konflik saat reload
             _dbContext.ChangeTracker.Clear();
 
             var recipes = await _dbContext.Recipes
@@ -401,17 +439,25 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null) return;
 
             SelectedRecipe.LastUpdated = DateTime.Now;
-            if (SelectedRecipe.TargetMarginPercent > 0)
+
+            // FIX: Prioritaskan Harga Jual Manual jika ada input yang valid
+            if (decimal.TryParse(ManualSellingPriceInput, out decimal manualPrice) && manualPrice > 0)
             {
-                if (decimal.TryParse(ManualSellingPriceInput, out decimal price))
-                {
-                    SelectedRecipe.ActualSellingPrice = price;
-                }
+                // Hitung balik margin dari harga manual ini
+                RecalculateMarginFromPrice();
+
+                // Simpan harga & margin yang baru dihitung ke object resep
+                SelectedRecipe.ActualSellingPrice = manualPrice;
+                SelectedRecipe.TargetMarginPercent = TargetMarginPercent;
+            }
+            // Jika tidak ada input valid, gunakan margin slider (fallback)
+            else if (SelectedRecipe.TargetMarginPercent > 0)
+            {
+                // Biarkan logic slider bekerja (tetap simpan margin)
+                // Harga jual akan mengikuti kalkulasi margin
             }
 
-            // FIX: Bersihkan tracker sebelum update untuk mencegah error "Identity Conflict"
             _dbContext.ChangeTracker.Clear();
-
             _dbContext.Recipes.Update(SelectedRecipe);
             await _dbContext.SaveChangesAsync();
 
@@ -420,9 +466,10 @@ namespace CostMasterAI.ViewModels
             OnPropertyChanged(nameof(SelectedRecipe));
             NotifyRecalculation();
             await ReloadSelectedRecipe();
-        }
 
-        // --- FITUR BARU: DUPLIKAT & HAPUS ---
+            // INTEGRASI: Kirim sinyal ke Dashboard
+            WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Updated"));
+        }
 
         [RelayCommand]
         private async Task DuplicateRecipeAsync(Recipe? recipe)
@@ -432,7 +479,6 @@ namespace CostMasterAI.ViewModels
 
             try
             {
-                // Bersihkan tracker sebelum query
                 _dbContext.ChangeTracker.Clear();
 
                 var source = await _dbContext.Recipes
@@ -492,6 +538,8 @@ namespace CostMasterAI.ViewModels
 
                 await ReloadSelectedRecipe();
                 await SyncSubRecipeToIngredients(SelectedRecipe);
+
+                WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Created"));
             }
             catch (Exception ex)
             {
@@ -507,20 +555,16 @@ namespace CostMasterAI.ViewModels
 
             try
             {
-                // FIX: Bersihkan tracker sebelum delete
                 _dbContext.ChangeTracker.Clear();
 
                 var entry = await _dbContext.Recipes.FindAsync(target.Id);
                 if (entry != null)
                 {
                     _dbContext.Recipes.Remove(entry);
-
                     var items = _dbContext.RecipeItems.Where(ri => ri.RecipeId == target.Id);
                     _dbContext.RecipeItems.RemoveRange(items);
-
                     var overheads = _dbContext.RecipeOverheads.Where(ro => ro.RecipeId == target.Id);
                     _dbContext.RecipeOverheads.RemoveRange(overheads);
-
                     await _dbContext.SaveChangesAsync();
                 }
 
@@ -532,6 +576,8 @@ namespace CostMasterAI.ViewModels
                     TargetScalingQty = 0;
                     ManualSellingPriceInput = "0";
                 }
+
+                WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Deleted"));
             }
             catch (Exception ex)
             {
@@ -598,7 +644,6 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null || TargetScalingQty <= 0) return;
             double ratio = (double)TargetScalingQty / SelectedRecipe.YieldQty;
 
-            // FIX: Clear tracker before scale updates
             _dbContext.ChangeTracker.Clear();
 
             foreach (var item in SelectedRecipe.Items)
@@ -616,6 +661,8 @@ namespace CostMasterAI.ViewModels
 
             await SyncSubRecipeToIngredients(SelectedRecipe);
             await ReloadSelectedRecipe();
+
+            WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Updated"));
         }
 
         [RelayCommand]
@@ -636,7 +683,6 @@ namespace CostMasterAI.ViewModels
             double ratio = TargetFlourQty / flourItem.UsageQty;
             if (ratio == 1 || ratio <= 0) return;
 
-            // FIX: Clear tracker
             _dbContext.ChangeTracker.Clear();
 
             foreach (var item in MainIngredients)
@@ -657,6 +703,8 @@ namespace CostMasterAI.ViewModels
             await SyncSubRecipeToIngredients(SelectedRecipe);
             await ReloadSelectedRecipe();
             TargetScalingQty = SelectedRecipe.YieldQty;
+
+            WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Updated"));
         }
 
         [RelayCommand]
@@ -671,7 +719,6 @@ namespace CostMasterAI.ViewModels
                 int newYield = (int)(netMass / SelectedRecipe.TargetPortionSize);
                 if (newYield < 1) newYield = 1;
 
-                // FIX: Clear tracker
                 _dbContext.ChangeTracker.Clear();
 
                 SelectedRecipe.YieldQty = newYield;
@@ -680,6 +727,8 @@ namespace CostMasterAI.ViewModels
 
                 await SyncSubRecipeToIngredients(SelectedRecipe);
                 await ReloadSelectedRecipe();
+
+                WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Updated"));
             }
         }
 
@@ -689,7 +738,6 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null || SelectedIngredientToAdd == null) return;
             if (double.TryParse(UsageQtyInput, out var qty) && qty > 0)
             {
-                // FIX: Clear tracker to ensure fresh insert
                 _dbContext.ChangeTracker.Clear();
 
                 var newItem = new RecipeItem
@@ -706,6 +754,8 @@ namespace CostMasterAI.ViewModels
                 await ReloadSelectedRecipe();
                 await SyncSubRecipeToIngredients(SelectedRecipe);
                 UsageQtyInput = "0";
+
+                WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Updated"));
             }
         }
 
@@ -714,13 +764,14 @@ namespace CostMasterAI.ViewModels
         {
             if (item == null) return;
 
-            // FIX: Clear tracker
             _dbContext.ChangeTracker.Clear();
 
             _dbContext.RecipeItems.Remove(item);
             await _dbContext.SaveChangesAsync();
             await ReloadSelectedRecipe();
             if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
+
+            WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Updated"));
         }
 
         [RelayCommand]
@@ -729,7 +780,6 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null || string.IsNullOrWhiteSpace(NewOverheadName)) return;
             if (decimal.TryParse(NewOverheadCost, out var cost) && cost > 0 && double.TryParse(UsageCycles, out var cycles) && cycles > 0)
             {
-                // FIX: Clear tracker
                 _dbContext.ChangeTracker.Clear();
 
                 decimal finalCost = cost / (decimal)cycles;
@@ -739,6 +789,8 @@ namespace CostMasterAI.ViewModels
                 await ReloadSelectedRecipe();
                 if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
                 NewOverheadName = ""; NewOverheadCost = ""; UsageCycles = "1";
+
+                WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Updated"));
             }
         }
 
@@ -747,13 +799,14 @@ namespace CostMasterAI.ViewModels
         {
             if (item == null) return;
 
-            // FIX: Clear tracker
             _dbContext.ChangeTracker.Clear();
 
             _dbContext.RecipeOverheads.Remove(item);
             await _dbContext.SaveChangesAsync();
             await ReloadSelectedRecipe();
             if (SelectedRecipe != null) await SyncSubRecipeToIngredients(SelectedRecipe);
+
+            WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Updated"));
         }
 
         [RelayCommand]
@@ -761,7 +814,6 @@ namespace CostMasterAI.ViewModels
         {
             if (string.IsNullOrWhiteSpace(NewRecipeName)) return;
 
-            // FIX: Clear tracker
             _dbContext.ChangeTracker.Clear();
 
             var newRecipe = new Recipe { Name = NewRecipeName, YieldQty = 1, Version = "1.0", LastUpdated = DateTime.Now };
@@ -770,6 +822,8 @@ namespace CostMasterAI.ViewModels
             Recipes.Add(newRecipe);
             SelectedRecipe = newRecipe;
             NewRecipeName = "";
+
+            WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Created"));
         }
 
         // --- AI FEATURES ---
@@ -784,7 +838,6 @@ namespace CostMasterAI.ViewModels
                 foreach (var item in SelectedRecipe.Items) sb.Append($"{item.Ingredient?.Name} ({item.UsageQty} {item.UsageUnit}), ");
                 var result = await _aiService.GenerateMarketingCopyAsync(SelectedRecipe.Name, sb.ToString().TrimEnd(',', ' '));
 
-                // FIX: Clear tracker
                 _dbContext.ChangeTracker.Clear();
 
                 SelectedRecipe.Description = result;
@@ -810,7 +863,6 @@ namespace CostMasterAI.ViewModels
                     var aiItems = JsonSerializer.Deserialize<List<AiRecipeData>>(jsonResult, options);
                     if (aiItems != null)
                     {
-                        // FIX: Clear tracker
                         _dbContext.ChangeTracker.Clear();
 
                         foreach (var item in aiItems)
@@ -832,6 +884,8 @@ namespace CostMasterAI.ViewModels
                         await _dbContext.SaveChangesAsync();
                         await ReloadSelectedRecipe();
                         await SyncSubRecipeToIngredients(SelectedRecipe);
+
+                        WeakReferenceMessenger.Default.Send(new RecipesChangedMessage("Updated"));
                     }
                 }
             }
@@ -906,9 +960,6 @@ namespace CostMasterAI.ViewModels
         {
             if (recipe == null) return;
 
-            // Perlu clear tracker lagi di sini? Tergantung apakah dipanggil setelah saveChanges.
-            // Karena method ini dipanggil SETELAH save, aman. Tapi untuk query 'FirstOrDefaultAsync',
-            // sebaiknya kita query fresh.
             _dbContext.ChangeTracker.Clear();
 
             var linkedIngredient = await _dbContext.Ingredients.FirstOrDefaultAsync(i => i.LinkedRecipeId == recipe.Id);
@@ -948,7 +999,6 @@ namespace CostMasterAI.ViewModels
             if (SelectedRecipe == null) return;
             var id = SelectedRecipe.Id;
 
-            // FIX: Clear tracker wajib di sini sebelum reload fresh data
             _dbContext.ChangeTracker.Clear();
 
             var updatedRecipe = await _dbContext.Recipes
@@ -959,7 +1009,6 @@ namespace CostMasterAI.ViewModels
 
             if (updatedRecipe != null)
             {
-                // Attach kembali agar bisa di-update nanti
                 _dbContext.Attach(updatedRecipe);
 
                 var index = -1;
@@ -970,7 +1019,6 @@ namespace CostMasterAI.ViewModels
             }
         }
 
-        // Handler untuk TextBox Harga
         public void OnPriceBoxKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
             if (e.Key == Windows.System.VirtualKey.Enter)

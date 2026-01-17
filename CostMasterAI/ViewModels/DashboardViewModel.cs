@@ -1,13 +1,16 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging; // Wajib untuk integrasi
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using CostMasterAI.Core.Models;   // Akses Model dari Core
-using CostMasterAI.Core.Services; // Akses DbContext dari Core
+using CostMasterAI.Core.Models;
+using CostMasterAI.Core.Services;
+using CostMasterAI.Helpers; // Akses AppMessages
+using System.Text.RegularExpressions; // Penting untuk membaca tag harga
 
 namespace CostMasterAI.ViewModels
 {
@@ -34,18 +37,22 @@ namespace CostMasterAI.ViewModels
         // ==========================================
         // 1. DATA KEUANGAN (INTEGRASI BARU)
         // ==========================================
-        [ObservableProperty] private decimal _currentRevenue;     // Pemasukan Bulan Ini
-        [ObservableProperty] private decimal _currentExpense;     // Pengeluaran Bulan Ini
-        [ObservableProperty] private decimal _currentNetProfit;   // Profit Bulan Ini
-        [ObservableProperty] private decimal _cashFlowBalance;    // Saldo Total (Semua Waktu)
+        [ObservableProperty] private decimal _currentRevenue;      // Pemasukan Bulan Ini (Uang Masuk Real)
+        [ObservableProperty] private decimal _currentExpense;      // Pengeluaran Bulan Ini
+        [ObservableProperty] private decimal _currentNetProfit;    // Profit Bulan Ini
+        [ObservableProperty] private decimal _cashFlowBalance;     // Saldo Total (Semua Waktu)
+
+        // --- FITUR BARU: Opportunity Loss (Selisih Harga) ---
+        [ObservableProperty] private decimal _potentialRevenue; // Pendapatan Seharusnya (Harga Normal)
+        [ObservableProperty] private decimal _revenueGap;       // Selisih (Diskon/Promo/Bundling)
 
         public ObservableCollection<Transaction> RecentTransactions { get; } = new();
 
         // ==========================================
-        // 2. DATA PRODUKSI & RESEP (FITUR LAMA)
+        // 2. DATA PRODUKSI & RESEP
         // ==========================================
         [ObservableProperty] private int _totalRecipesCount;
-        [ObservableProperty] private int _totalIngredientsCount; // Baru
+        [ObservableProperty] private int _totalIngredientsCount;
         [ObservableProperty] private decimal _totalProductionCost;
         [ObservableProperty] private string _globalGrossProfitMargin = "0%";
         [ObservableProperty] private int _efficiencyScore = 100;
@@ -74,13 +81,32 @@ namespace CostMasterAI.ViewModels
 
         public DashboardViewModel()
         {
-            // Inisialisasi DbContext
             _dbContext = new AppDbContext();
+
+            // --- INTEGRASI SISTEM PESAN (REAL-TIME UPDATE) ---
+
+            // 1. Dengar Perubahan Transaksi (Update Revenue/Profit/Gap)
+            WeakReferenceMessenger.Default.Register<TransactionsChangedMessage>(this, (r, m) =>
+            {
+                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData());
+            });
+
+            // 2. Dengar Perubahan Resep (Update Total Produk & Inventory Value)
+            WeakReferenceMessenger.Default.Register<RecipesChangedMessage>(this, (r, m) =>
+            {
+                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData());
+            });
+
+            // 3. Dengar Perubahan Bahan (Update Total Bahan)
+            WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
+            {
+                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData());
+            });
         }
 
         // Method ini dipanggil dari DashboardPage.xaml.cs saat halaman dibuka
         [RelayCommand]
-        public async Task LoadDashboardData() // Ganti nama dari RefreshDashboardAsync agar konsisten
+        public async Task LoadDashboardData()
         {
             if (IsLoading) return;
             IsLoading = true;
@@ -92,7 +118,7 @@ namespace CostMasterAI.ViewModels
                 await _dbContext.Database.EnsureCreatedAsync();
 
                 // ---------------------------------------------------------
-                // STEP 1: LOAD DATA KEUANGAN (TRANSACTIONS)
+                // STEP 1: LOAD DATA KEUANGAN & PARSING SELISIH HARGA
                 // ---------------------------------------------------------
                 var allTransactions = await _dbContext.Transactions.AsNoTracking().ToListAsync();
 
@@ -111,6 +137,30 @@ namespace CostMasterAI.ViewModels
                 CurrentRevenue = monthTrx.Where(t => t.Type == "Income").Sum(t => t.Amount);
                 CurrentExpense = monthTrx.Where(t => t.Type == "Expense").Sum(t => t.Amount);
                 CurrentNetProfit = CurrentRevenue - CurrentExpense;
+
+                // --- LOGIC DETEKSI SELISIH HARGA (NEW) ---
+                // Kita cari tag [Std:ANGKA] di deskripsi transaksi bulan ini
+                // Tag ini dibuat otomatis oleh ReportsViewModel saat menjual produk
+                decimal calculatedPotentialRevenue = 0;
+
+                foreach (var trx in monthTrx.Where(t => t.Type == "Income"))
+                {
+                    // Regex mencari pattern [Std:12345]
+                    var match = Regex.Match(trx.Description ?? "", @"\[Std:(\d+)\]");
+                    if (match.Success && decimal.TryParse(match.Groups[1].Value, out decimal stdPrice))
+                    {
+                        // Jika ada tag standar, gunakan harga standar untuk potensi revenue
+                        calculatedPotentialRevenue += stdPrice;
+                    }
+                    else
+                    {
+                        // Jika tidak ada tag (input manual biasa), asumsi harga standar = harga jual
+                        calculatedPotentialRevenue += trx.Amount;
+                    }
+                }
+
+                PotentialRevenue = calculatedPotentialRevenue;
+                RevenueGap = PotentialRevenue - CurrentRevenue; // Selisih (Diskon/Promo)
 
                 // Populate 5 Transaksi Terakhir
                 RecentTransactions.Clear();
@@ -155,7 +205,7 @@ namespace CostMasterAI.ViewModels
             }
         }
 
-        // --- LOGIC PERHITUNGAN PRODUKSI (DARI KODE LAMA) ---
+        // --- LOGIC PERHITUNGAN PRODUKSI ---
 
         private void CalculateExecutiveSummary(List<Recipe> recipes)
         {
@@ -166,8 +216,6 @@ namespace CostMasterAI.ViewModels
             var validRecipes = recipes.Where(r => r.ActualSellingPrice > 0).ToList();
             if (validRecipes.Any())
             {
-                // Gunakan properti helper di Model jika ada, atau hitung manual
-                // Asumsi di Model Recipe ada helper method/prop untuk Margin
                 double avgMargin = validRecipes.Average(r =>
                 {
                     if (r.ActualSellingPrice == 0) return 0;
@@ -181,7 +229,7 @@ namespace CostMasterAI.ViewModels
             }
 
             // Efficiency Score (Base on Cooking Loss)
-            double avgCookingLoss = recipes.Average(r => r.CookingLossPercent);
+            double avgCookingLoss = recipes.Any() ? recipes.Average(r => r.CookingLossPercent) : 0;
             double score = 100 - (avgCookingLoss * 2.0);
             score = Math.Max(0, Math.Min(100, score));
             EfficiencyScore = (int)score;
@@ -237,16 +285,16 @@ namespace CostMasterAI.ViewModels
             StarMenus.Clear(); CashCowMenus.Clear(); PuzzleMenus.Clear(); DogMenus.Clear();
             StarProductsCount = 0; CashCowCount = 0; PuzzleCount = 0; DogCount = 0;
 
-            // Menggunakan YieldQty sebagai proxy untuk "Volume Penjualan" jika data sales belum ada
+            if (!recipes.Any()) return;
+
             double avgVolume = recipes.Average(r => r.YieldQty);
-            double targetMargin = 40.0; // Target margin standar industri F&B
+            double targetMargin = 40.0;
 
             Recipe? bestPerformer = null;
             decimal maxProfitVal = -1;
 
             foreach (var r in recipes)
             {
-                // Hitung margin per resep
                 double margin = 0;
                 if (r.ActualSellingPrice > 0)
                     margin = (double)((r.ActualSellingPrice - r.CostPerUnit) / r.ActualSellingPrice * 100);
@@ -275,7 +323,6 @@ namespace CostMasterAI.ViewModels
                     DogCount++;
                 }
 
-                // Cari Top Performer (Estimasi Profit)
                 decimal estimatedProfit = (r.ActualSellingPrice - r.CostPerUnit) * (decimal)r.YieldQty;
                 if (estimatedProfit > maxProfitVal)
                 {

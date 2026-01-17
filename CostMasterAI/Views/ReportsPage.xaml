@@ -68,81 +68,137 @@
             </Grid>
 
             <Grid Grid.Row="1" Margin="0,0,0,32" Style="{StaticResource ReportCardStyle}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="200"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <TabView IsAddTabButtonVisible="False" TabWidthMode="Equal">
 
-                <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                    <TextBlock Text="Jenis" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                    <ComboBox SelectedIndex="{Binding SelectedTypeIndex, Mode=TwoWay}" Width="140" FontFamily="{StaticResource AppFontMedium}">
-                        <ComboBoxItem Content="Pemasukan" Tag="Income"/>
-                        <ComboBoxItem Content="Pengeluaran" Tag="Expense"/>
-                    </ComboBox>
-                </StackPanel>
+                    <TabViewItem Header="Input Manual">
+                        <TabViewItem.IconSource>
+                            <SymbolIconSource Symbol="Edit"/>
+                        </TabViewItem.IconSource>
 
-                <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                    <Grid Margin="0,0,0,4">
-                        <TextBlock Text="Keterangan / Item" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <Grid Padding="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                        <Button x:Name="PickButton" HorizontalAlignment="Right" Padding="6,2" Background="{ThemeResource SubtleBackgroundBrush}" BorderThickness="0" CornerRadius="4" ToolTipService.ToolTip="Ambil dari Database Bahan">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xed04;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
-                                <TextBlock Text="Ambil Bahan" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                <TextBlock Text="Jenis" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <ComboBox SelectedIndex="{Binding SelectedTypeIndex, Mode=TwoWay}" Width="140" FontFamily="{StaticResource AppFontMedium}">
+                                    <ComboBoxItem Content="Pemasukan" Tag="Income"/>
+                                    <ComboBoxItem Content="Pengeluaran" Tag="Expense"/>
+                                </ComboBox>
                             </StackPanel>
 
-                            <Button.Flyout>
-                                <Flyout Placement="Bottom">
-                                    <Grid Width="280" Height="300">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                        </Grid.RowDefinitions>
+                            <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                <Grid Margin="0,0,0,4">
+                                    <TextBlock Text="Keterangan / Item" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <Button x:Name="PickButton" HorizontalAlignment="Right" Padding="6,2" Background="{ThemeResource SubtleBackgroundBrush}" BorderThickness="0" CornerRadius="4" ToolTipService.ToolTip="Ambil dari Database Bahan">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xed04;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
+                                            <TextBlock Text="Ambil Bahan" FontSize="10" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
+                                        </StackPanel>
+                                        <Button.Flyout>
+                                            <Flyout Placement="Bottom">
+                                                <Grid Width="280" Height="300">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Text="Pilih Bahan Baku" FontFamily="{StaticResource AppFontBold}" FontSize="14" Margin="0,0,0,12"/>
+                                                    <ListView Grid.Row="1" ItemsSource="{Binding IngredientsList}" IsItemClickEnabled="True" ItemClick="IngredientList_ItemClick" SelectionMode="None">
+                                                        <ListView.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Padding="8" BorderBrush="{ThemeResource CardBorderBrush}" BorderThickness="0,0,0,1">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="1" Text="{Binding PricePerPackage, Converter={StaticResource MoneyConv}}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ListView.ItemTemplate>
+                                                    </ListView>
+                                                </Grid>
+                                            </Flyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                </Grid>
+                                <TextBox PlaceholderText="Contoh: Belanja Tepung..." Text="{Binding InputNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource AppFont}"/>
+                            </StackPanel>
 
-                                        <TextBlock Text="Pilih Bahan Baku" FontFamily="{StaticResource AppFontBold}" FontSize="14" Margin="0,0,0,12"/>
+                            <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                                <TextBlock Text="Nominal (Rp)" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <TextBox PlaceholderText="0" Text="{Binding InputAmountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource AppFontMedium}"/>
+                            </StackPanel>
 
-                                        <ListView Grid.Row="1" ItemsSource="{Binding IngredientsList}" IsItemClickEnabled="True" ItemClick="IngredientList_ItemClick" SelectionMode="None">
-                                            <ListView.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid Padding="8" BorderBrush="{ThemeResource CardBorderBrush}" BorderThickness="0,0,0,1">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Name}" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding PricePerPackage, Converter={StaticResource MoneyConv}}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ListView.ItemTemplate>
-                                        </ListView>
-                                    </Grid>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-                    </Grid>
+                            <StackPanel Grid.Column="3" Margin="0,0,16,0">
+                                <TextBlock Text="Tanggal" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <CalendarDatePicker Date="{Binding InputDate, Mode=TwoWay}" Width="150" FontFamily="{StaticResource AppFont}"/>
+                            </StackPanel>
 
-                    <TextBox PlaceholderText="Contoh: Belanja Tepung..." Text="{Binding InputNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource AppFont}"/>
-                </StackPanel>
+                            <Button Grid.Column="4" Command="{Binding AddTransactionCommand}" VerticalAlignment="Bottom" Style="{StaticResource PrimaryButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xEA13;"/>
+                                    <TextBlock Text="Simpan" FontFamily="{StaticResource AppFontBold}"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </TabViewItem>
 
-                <StackPanel Grid.Column="2" Margin="0,0,16,0">
-                    <TextBlock Text="Nominal (Rp)" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                    <TextBox PlaceholderText="0" Text="{Binding InputAmountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource AppFontMedium}"/>
-                </StackPanel>
+                    <TabViewItem Header="Penjualan Produk">
+                        <TabViewItem.IconSource>
+                            <SymbolIconSource Symbol="Shop"/>
+                        </TabViewItem.IconSource>
 
-                <StackPanel Grid.Column="3" Margin="0,0,16,0">
-                    <TextBlock Text="Tanggal" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                    <CalendarDatePicker Date="{Binding InputDate, Mode=TwoWay}" Width="150" FontFamily="{StaticResource AppFont}"/>
-                </StackPanel>
+                        <Grid Padding="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1.5*"/>
+                                <ColumnDefinition Width="1.5*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="4" Command="{Binding AddTransactionCommand}" VerticalAlignment="Bottom" Style="{StaticResource PrimaryButtonStyle}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xEA13;"/>
-                        <TextBlock Text="Simpan" FontFamily="{StaticResource AppFontBold}"/>
-                    </StackPanel>
-                </Button>
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                <TextBlock Text="Pilih Produk" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <ComboBox ItemsSource="{Binding ProductList}" SelectedItem="{Binding SelectedProductToSell, Mode=TwoWay}" 
+                                          DisplayMemberPath="Name" HorizontalAlignment="Stretch" FontFamily="{StaticResource AppFontMedium}" PlaceholderText="Pilih Donat..."/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                <TextBlock Text="Jumlah (Qty)" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <TextBox Text="{Binding SalesQty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource AppFontMedium}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                                <TextBlock Text="Harga Deal (Aktual)" Margin="0,0,0,4" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <TextBox Text="{Binding SalesActualPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource AppFontBold}"/>
+                                <TextBlock Text="Harga paket/diskon" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="3" Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Text="Potensi (Teori)" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding SalesStandardTotal, Converter={StaticResource MoneyConv}}" FontFamily="{StaticResource AppFontBold}" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}"/>
+
+                                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,4,0,0">
+                                    <TextBlock Text="Selisih:" FontSize="11" Foreground="{ThemeResource DangerBrush}"/>
+                                    <TextBlock Text="{Binding SalesVariance}" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource DangerBrush}"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Button Grid.Column="4" Command="{Binding SellProductCommand}" VerticalAlignment="Bottom" Margin="0,0,0,12" Background="{ThemeResource SuccessBrush}" BorderThickness="0" Padding="16,8" CornerRadius="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeb7b;" FontSize="16" Foreground="White"/>
+                                    <TextBlock Text="Jual" FontFamily="{StaticResource AppFontBold}" Foreground="White"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </TabViewItem>
+                </TabView>
             </Grid>
 
             <Grid Grid.Row="2" ColumnSpacing="24" Margin="0,0,0,32">

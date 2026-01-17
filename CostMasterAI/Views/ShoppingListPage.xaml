@@ -142,13 +142,29 @@
                                GridLinesVisibility="Horizontal"
                                IsReadOnly="True"
                                BorderThickness="0"
-                               RowHeight="48"
+                               RowHeight="52"
                                FontFamily="{StaticResource AppFontMedium}"
                                RowBackground="Transparent"
                                AlternatingRowBackground="Transparent">
+
                 <controls:DataGrid.Resources>
                     <SolidColorBrush x:Key="DataGridColumnHeaderBackgroundBrush" Color="Transparent"/>
                 </controls:DataGrid.Resources>
+
+                <controls:DataGrid.RowStyle>
+                    <Style TargetType="controls:DataGridRow">
+                        <Setter Property="ContextFlyout">
+                            <Setter.Value>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Tandai Selesai Belanja" Icon="Accept"
+                                                    Command="{Binding Data.MarkAsBoughtCommand, Source={StaticResource ViewModelProxy}}"
+                                                    CommandParameter="{Binding}"/>
+                                </MenuFlyout>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </controls:DataGrid.RowStyle>
+
                 <controls:DataGrid.Columns>
                     <controls:DataGridTemplateColumn Header="Nama Bahan" Width="2*">
                         <controls:DataGridTemplateColumn.CellTemplate>
@@ -157,6 +173,7 @@
                             </DataTemplate>
                         </controls:DataGridTemplateColumn.CellTemplate>
                     </controls:DataGridTemplateColumn>
+
                     <controls:DataGridTemplateColumn Header="Total Butuh" Width="*">
                         <controls:DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -164,6 +181,7 @@
                             </DataTemplate>
                         </controls:DataGridTemplateColumn.CellTemplate>
                     </controls:DataGridTemplateColumn>
+
                     <controls:DataGridTemplateColumn Header="Satuan" Width="0.8*">
                         <controls:DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -171,6 +189,7 @@
                             </DataTemplate>
                         </controls:DataGridTemplateColumn.CellTemplate>
                     </controls:DataGridTemplateColumn>
+
                     <controls:DataGridTemplateColumn Header="Est. Biaya" Width="*">
                         <controls:DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -179,6 +198,24 @@
                             </DataTemplate>
                         </controls:DataGridTemplateColumn.CellTemplate>
                     </controls:DataGridTemplateColumn>
+
+                    <controls:DataGridTemplateColumn Header="Aksi" Width="Auto">
+                        <controls:DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding Data.MarkAsBoughtCommand, Source={StaticResource ViewModelProxy}}" 
+                                        CommandParameter="{Binding}"
+                                        ToolTipService.ToolTip="Tandai Sudah Dibeli (Masuk ke Pengeluaran)"
+                                        Background="Transparent" BorderThickness="1" BorderBrush="{ThemeResource SuccessBrush}" 
+                                        Padding="8,4" Margin="12,0" CornerRadius="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeb7b;" FontSize="14" Foreground="{ThemeResource SuccessBrush}"/>
+                                        <TextBlock Text="Beli" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource SuccessBrush}"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </controls:DataGridTemplateColumn.CellTemplate>
+                    </controls:DataGridTemplateColumn>
+
                 </controls:DataGrid.Columns>
             </controls:DataGrid>
 

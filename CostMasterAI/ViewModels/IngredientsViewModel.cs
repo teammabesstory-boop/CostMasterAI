@@ -1,9 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging; // Wajib untuk komunikasi antar halaman
 using CostMasterAI.Helpers;
-using CostMasterAI.Core.Services; // Mengarah ke Project Core
-using CostMasterAI.Core.Models;   // Mengarah ke Project Core
-using CostMasterAI.Services;      // Untuk DataSeeder (jika ada di UI project)
+using CostMasterAI.Core.Services;
+using CostMasterAI.Core.Models;
+using CostMasterAI.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -65,12 +66,10 @@ namespace CostMasterAI.ViewModels
 
         public IngredientsViewModel()
         {
-            // Constructor default untuk desain time atau inisialisasi manual
             _dbContext = new AppDbContext();
             _ = LoadDataAsync();
         }
 
-        // Jika Anda menggunakan DI, constructor ini akan dipanggil
         public IngredientsViewModel(AppDbContext dbContext)
         {
             _dbContext = dbContext;
@@ -81,8 +80,10 @@ namespace CostMasterAI.ViewModels
         {
             try
             {
-                // Pastikan DB connect
                 await _dbContext.Database.EnsureCreatedAsync();
+
+                // Bersihkan tracker sebelum load data fresh
+                _dbContext.ChangeTracker.Clear();
 
                 // Load semua bahan, urutkan A-Z
                 var data = await _dbContext.Ingredients
@@ -91,7 +92,7 @@ namespace CostMasterAI.ViewModels
                     .ToListAsync();
 
                 _allIngredients = data;
-                PerformSearch(); // Populate ObservableCollection
+                PerformSearch();
             }
             catch (Exception ex)
             {
@@ -131,6 +132,9 @@ namespace CostMasterAI.ViewModels
 
             try
             {
+                // Bersihkan tracker untuk mencegah konflik
+                _dbContext.ChangeTracker.Clear();
+
                 if (IsEditing && SelectedIngredient != null)
                 {
                     // UPDATE EXISTING
@@ -145,6 +149,9 @@ namespace CostMasterAI.ViewModels
 
                         _dbContext.Ingredients.Update(existing);
                         await _dbContext.SaveChangesAsync();
+
+                        // INTEGRASI: Kirim sinyal update ke seluruh aplikasi
+                        WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Updated"));
                     }
                 }
                 else
@@ -161,6 +168,9 @@ namespace CostMasterAI.ViewModels
                     };
                     _dbContext.Ingredients.Add(newIng);
                     await _dbContext.SaveChangesAsync();
+
+                    // INTEGRASI: Kirim sinyal update ke seluruh aplikasi
+                    WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Created"));
                 }
 
                 ResetInput(); // Bersihkan form
@@ -179,11 +189,12 @@ namespace CostMasterAI.ViewModels
 
             try
             {
+                _dbContext.ChangeTracker.Clear();
+
                 // Cek Validasi: Jangan hapus jika sedang dipakai di Resep
                 bool isUsed = await _dbContext.RecipeItems.AnyAsync(ri => ri.IngredientId == item.Id);
                 if (isUsed)
                 {
-                    // TODO: Tampilkan Dialog Peringatan (Menggunakan ContentDialog nanti)
                     System.Diagnostics.Debug.WriteLine("Gagal Hapus: Bahan sedang digunakan di resep lain.");
                     return;
                 }
@@ -194,15 +205,17 @@ namespace CostMasterAI.ViewModels
                 {
                     _dbContext.Ingredients.Remove(entry);
                     await _dbContext.SaveChangesAsync();
+
+                    // INTEGRASI: Kirim sinyal update ke seluruh aplikasi
+                    WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Deleted"));
                 }
 
-                // Update UI Collections langsung (Lebih cepat daripada reload DB)
+                // Update UI Collections langsung
                 var itemInList = _allIngredients.FirstOrDefault(i => i.Id == item.Id);
                 if (itemInList != null) _allIngredients.Remove(itemInList);
 
                 if (Ingredients.Contains(item)) Ingredients.Remove(item);
 
-                // Jika yang dihapus sedang diedit, reset form
                 if (SelectedIngredient?.Id == item.Id) ResetInput();
             }
             catch (Exception ex)
@@ -211,7 +224,6 @@ namespace CostMasterAI.ViewModels
             }
         }
 
-        // Method ini dipanggil oleh Context Menu "Edit Bahan"
         [RelayCommand]
         private void PrepareEdit(Ingredient? item)
         {
@@ -219,9 +231,9 @@ namespace CostMasterAI.ViewModels
 
             SelectedIngredient = item;
 
-            // Populate Form dari Item yang dipilih
+            // Populate Form
             InputName = item.Name;
-            InputPrice = item.PricePerPackage.ToString("0.##"); // Format bersih
+            InputPrice = item.PricePerPackage.ToString("0.##");
             InputQty = item.QuantityPerPackage.ToString("0.##");
             InputUnit = item.Unit;
             InputYield = item.YieldPercent.ToString("0.##");
@@ -236,7 +248,7 @@ namespace CostMasterAI.ViewModels
             InputName = "";
             InputPrice = "";
             InputQty = "";
-            InputUnit = "Gram"; // Default Unit
+            InputUnit = "Gram";
             InputYield = "100";
             IsEditing = false;
         }
@@ -249,13 +261,9 @@ namespace CostMasterAI.ViewModels
                 var picker = new FileOpenPicker();
                 picker.ViewMode = PickerViewMode.List;
                 picker.SuggestedStartLocation = PickerLocationId.Downloads;
-
-                // FILTER HANYA EXCEL
                 picker.FileTypeFilter.Add(".xlsx");
                 picker.FileTypeFilter.Add(".xls");
 
-                // WinUI 3 Window Handle logic
-                // Pastikan App.MainWindow terekspos public static di App.xaml.cs
                 if (App.MainWindow != null)
                 {
                     var hWnd = WindowNative.GetWindowHandle(App.MainWindow);
@@ -265,13 +273,13 @@ namespace CostMasterAI.ViewModels
                 var file = await picker.PickSingleFileAsync();
                 if (file != null)
                 {
-                    // PANGGIL SEEDER EXCEL
-                    // Asumsi DataSeeder ada di project UI atau Core
                     var seeder = new DataSeeder(_dbContext);
                     await seeder.SeedFromExcelAsync(file);
 
-                    // Refresh Data
                     await LoadDataAsync();
+
+                    // INTEGRASI: Kabari sistem bahwa data banyak berubah
+                    WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Imported"));
                 }
             }
             catch (Exception ex)

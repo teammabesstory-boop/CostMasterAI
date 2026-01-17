@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
-using CostMasterAI.Views;
+using CostMasterAI.Helpers; // Helper untuk Theme
 
 namespace CostMasterAI.Views
 {
@@ -11,86 +11,89 @@ namespace CostMasterAI.Views
         {
             this.InitializeComponent();
 
-            // Mengatur TitleBar kustom
+            // Set Title Bar Custom
             ExtendsContentIntoTitleBar = true;
             SetTitleBar(AppTitleBar);
 
-            // Set Tema Default ke Light saat aplikasi mulai
-            if (Content is FrameworkElement rootElement)
-            {
-                rootElement.RequestedTheme = ElementTheme.Light;
-            }
+            // Default ke Dashboard saat aplikasi dibuka
+            NavView.SelectedItem = NavView.MenuItems[0];
+            NavView_Navigate("dashboard", new Microsoft.UI.Xaml.Media.Animation.EntranceNavigationTransitionInfo());
         }
 
-        // --- LOGIKA LOADING ---
         private void NavView_Loaded(object sender, RoutedEventArgs e)
         {
-            // Cek apakah ada menu items
-            if (NavView.MenuItems.Count > 0)
-            {
-                // 1. Pilih item pertama (Dashboard) secara visual di menu
-                NavView.SelectedItem = NavView.MenuItems[0];
-
-                // 2. Navigasi manual ke halaman Dashboard
-                ContentFrame.Navigate(typeof(DashboardPage));
-            }
+            // Opsional: Logic tambahan saat nav view loaded
         }
 
-        // --- LOGIKA NAVIGASI ---
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
-            // Safety check: Pastikan args tidak null
-            if (args == null) return;
-
             if (args.IsSettingsSelected)
             {
-                ContentFrame.Navigate(typeof(SettingsPage));
+                // Navigasi ke halaman Settings (jika ada)
+                // ContentFrame.Navigate(typeof(SettingsPage));
             }
-            else if (args.SelectedItem is NavigationViewItem selectedItem)
+            else
             {
-                string tag = selectedItem.Tag?.ToString();
-
-                switch (tag)
+                var selectedItem = args.SelectedItemContainer as NavigationViewItem;
+                if (selectedItem != null)
                 {
-                    case "dashboard":
-                        ContentFrame.Navigate(typeof(DashboardPage));
-                        break;
-                    case "ingredients":
-                        ContentFrame.Navigate(typeof(IngredientsPage));
-                        break;
-                    case "recipes":
-                        ContentFrame.Navigate(typeof(RecipesPage));
-                        break;
-                    case "shopping":
-                        ContentFrame.Navigate(typeof(ShoppingListPage));
-                        break;
-                    case "reports":
-                        // Case Baru untuk Halaman Laporan
-                        ContentFrame.Navigate(typeof(ReportsPage));
-                        break;
-                    case "profile":
-                        // ContentFrame.Navigate(typeof(ProfilePage)); 
-                        break;
+                    string navItemTag = selectedItem.Tag.ToString();
+                    NavView_Navigate(navItemTag, args.RecommendedNavigationTransitionInfo);
                 }
             }
         }
 
-        // --- LOGIKA DARK MODE ---
+        private void NavView_Navigate(string navItemTag, Microsoft.UI.Xaml.Media.Animation.NavigationTransitionInfo transitionInfo)
+        {
+            Type _page = null;
+
+            switch (navItemTag)
+            {
+                case "dashboard":
+                    _page = typeof(DashboardPage);
+                    break;
+                case "ingredients":
+                    _page = typeof(IngredientsPage);
+                    break;
+                case "recipes":
+                    _page = typeof(RecipesPage);
+                    break;
+                case "shopping":
+                    _page = typeof(ShoppingListPage);
+                    break;
+                case "reports":
+                    _page = typeof(ReportsPage);
+                    break;
+
+                // --- FIX: INTEGRASI AI ASSISTANT ---
+                case "ai_assistant":
+                    _page = typeof(AIAssistantPage);
+                    break;
+
+                case "profile":
+                    // _page = typeof(ProfilePage); // Uncomment jika sudah ada halaman profile
+                    break;
+            }
+
+            // Hindari navigasi ulang ke halaman yang sama
+            var preNavPageType = ContentFrame.CurrentSourcePageType;
+            if (_page != null && !Type.Equals(preNavPageType, _page))
+            {
+                ContentFrame.Navigate(_page, null, transitionInfo);
+            }
+        }
+
         private void ToggleThemeButton_Click(object sender, RoutedEventArgs e)
         {
-            if (Content is FrameworkElement rootElement)
+            // Simple Theme Toggler menggunakan Helper
+            if (ContentFrame.XamlRoot != null)
             {
-                if (rootElement.RequestedTheme == ElementTheme.Light)
+                var currentTheme = ContentFrame.ActualTheme;
+                var newTheme = currentTheme == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
+
+                if (ContentFrame.Content is Page currentPage)
                 {
-                    rootElement.RequestedTheme = ElementTheme.Dark;
-                    // Ubah icon jadi Matahari (Sun) - Kode RemixIcon: ri-sun-line
-                    if (ThemeIcon != null) ThemeIcon.Glyph = "\uEECB";
-                }
-                else
-                {
-                    rootElement.RequestedTheme = ElementTheme.Light;
-                    // Ubah icon jadi Bulan (Moon) - Kode RemixIcon: ri-moon-line
-                    if (ThemeIcon != null) ThemeIcon.Glyph = "\uEF56";
+                    currentPage.RequestedTheme = newTheme;
                 }
             }
         }

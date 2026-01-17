@@ -114,6 +114,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <Grid Grid.Column="0" Style="{StaticResource DashboardCardStyle}">
@@ -123,16 +124,35 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid>
-                        <TextBlock Text="REVENUE (THIS MONTH)" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <TextBlock Text="REVENUE (ACTUAL)" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
                         <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xebc6;" FontSize="20" HorizontalAlignment="Right" Foreground="{ThemeResource AccentBrush}" Opacity="0.8"/>
                     </Grid>
                     <Viewbox Grid.Row="1" StretchDirection="DownOnly" HorizontalAlignment="Left">
                         <TextBlock Text="{Binding CurrentRevenue, Converter={StaticResource MoneyConv}}" Style="{StaticResource BigMetricStyle}" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     </Viewbox>
-                    <TextBlock Grid.Row="2" Text="Total Pemasukan Kotor" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
+                    <TextBlock Grid.Row="2" Text="Total Uang Masuk" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
                 </Grid>
 
-                <Grid Grid.Column="1" Style="{StaticResource DashboardCardStyle}" Background="{ThemeResource AccentBrush}">
+                <Grid Grid.Column="1" Style="{StaticResource DashboardCardStyle}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <TextBlock Text="OPPORTUNITY LOSS" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xec4e;" FontSize="20" HorizontalAlignment="Right" Foreground="#F59E0B" Opacity="0.8"/>
+                    </Grid>
+                    <Viewbox Grid.Row="1" StretchDirection="DownOnly" HorizontalAlignment="Left">
+                        <TextBlock Text="{Binding RevenueGap, Converter={StaticResource MoneyConv}}" Style="{StaticResource BigMetricStyle}" Foreground="#F59E0B" VerticalAlignment="Center"/>
+                    </Viewbox>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="Potensi:" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
+                        <TextBlock Text="{Binding PotentialRevenue, Converter={StaticResource MoneyConv}}" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Column="2" Style="{StaticResource DashboardCardStyle}" Background="{ThemeResource AccentBrush}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -148,14 +168,14 @@
                     <TextBlock Grid.Row="2" Text="Keuntungan Bersih" FontSize="12" Foreground="White" Opacity="0.6" FontFamily="{StaticResource AppFont}"/>
                 </Grid>
 
-                <Grid Grid.Column="2" Style="{StaticResource DashboardCardStyle}">
+                <Grid Grid.Column="3" Style="{StaticResource DashboardCardStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid>
-                        <TextBlock Text="CASH FLOW BALANCE" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <TextBlock Text="CASH BALANCE" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
                         <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf11e;" FontSize="20" HorizontalAlignment="Right" Foreground="{ThemeResource SuccessBrush}" Opacity="0.8"/>
                     </Grid>
                     <Viewbox Grid.Row="1" StretchDirection="DownOnly" HorizontalAlignment="Left">

@@ -92,6 +92,14 @@
                         <FontIcon Glyph="&#xEC7A;" Style="{StaticResource NavIconStyle}"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+
+                <NavigationViewItemSeparator/>
+                <NavigationViewItem Tag="ai_assistant" Content="AI Assistant">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xee3e;" Style="{StaticResource NavIconStyle}" Foreground="{ThemeResource AccentBrush}"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
             </NavigationView.MenuItems>
 
             <NavigationView.FooterMenuItems>
