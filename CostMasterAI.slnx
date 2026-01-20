@@ -1,16 +1,21 @@
 <Solution>
   <Configurations>
+    <Platform Name="ARM32" />
     <Platform Name="ARM64" />
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
   <Project Path="CostMasterAI.Core/CostMasterAI.Core.csproj" Id="a04aa6e0-efe1-4179-882b-87464e024553">
+    <Platform Solution="*|ARM32" Project="ARM32" />
     <Platform Solution="*|ARM64" Project="ARM64" />
     <Platform Solution="*|x64" Project="x64" />
     <Platform Solution="*|x86" Project="x86" />
-    <Deploy />
+    <Deploy Solution="*|ARM64" />
+    <Deploy Solution="*|x64" />
+    <Deploy Solution="*|x86" />
   </Project>
   <Project Path="CostMasterAI/CostMasterAI.csproj">
+    <Platform Solution="*|ARM32" Project="x64" />
     <Platform Solution="*|ARM64" Project="ARM64" />
     <Platform Solution="*|x64" Project="x64" />
     <Platform Solution="*|x86" Project="x86" />
