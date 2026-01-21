@@ -142,44 +142,39 @@ namespace CostMasterAI.ViewModels
 
             try
             {
-                _dbContext.ChangeTracker.Clear();
-
                 if (IsEditing && SelectedIngredient != null)
                 {
                     // --- UPDATE EXISTING (STOCK OPNAME LOGIC) ---
-                    var existing = await _dbContext.Ingredients.FindAsync(SelectedIngredient.Id);
-                    if (existing != null)
+                    // 1. Cek perubahan Stok (Stock Opname)
+                    if (Math.Abs(SelectedIngredient.CurrentStock - stock) > 0.001)
                     {
-                        // 1. Cek perubahan Stok (Stock Opname)
-                        if (Math.Abs(existing.CurrentStock - stock) > 0.001)
+                        double diff = stock - SelectedIngredient.CurrentStock;
+                        // Catat Transaksi Adjustment
+                        _dbContext.StockTransactions.Add(new StockTransaction
                         {
-                            double diff = stock - existing.CurrentStock;
-                            // Catat Transaksi Adjustment
-                            _dbContext.StockTransactions.Add(new StockTransaction
-                            {
-                                IngredientId = existing.Id,
-                                Date = DateTime.Now,
-                                Type = "Adjustment",
-                                Quantity = Math.Abs(diff),
-                                Unit = InputUnit,
-                                Description = diff > 0 ? "Stock Opname (Tambah)" : "Stock Opname (Susut)"
-                            });
-                        }
-
-                        // 2. Update Data Master
-                        existing.Name = InputName;
-                        existing.PricePerPackage = price;
-                        existing.QuantityPerPackage = qty;
-                        existing.Unit = InputUnit;
-                        existing.YieldPercent = yield;
-                        existing.CurrentStock = stock; // Update Stok Baru
-                        existing.MinimumStock = minStock;
-
-                        _dbContext.Ingredients.Update(existing);
-                        await _dbContext.SaveChangesAsync();
-
-                        WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Updated"));
+                            IngredientId = SelectedIngredient.Id,
+                            Date = DateTime.Now,
+                            Type = "Adjustment",
+                            Quantity = Math.Abs(diff),
+                            Unit = InputUnit,
+                            Description = diff > 0 ? "Stock Opname (Tambah)" : "Stock Opname (Susut)"
+                        });
                     }
+
+                    // 2. Update Data Master on the untracked entity
+                    SelectedIngredient.Name = InputName;
+                    SelectedIngredient.PricePerPackage = price;
+                    SelectedIngredient.QuantityPerPackage = qty;
+                    SelectedIngredient.Unit = InputUnit;
+                    SelectedIngredient.YieldPercent = yield;
+                    SelectedIngredient.CurrentStock = stock; // Update Stok Baru
+                    SelectedIngredient.MinimumStock = minStock;
+
+                    // Attach and mark as modified
+                    _dbContext.Ingredients.Update(SelectedIngredient);
+                    await _dbContext.SaveChangesAsync();
+
+                    WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Updated"));
                 }
                 else
                 {
@@ -232,8 +227,6 @@ namespace CostMasterAI.ViewModels
 
             try
             {
-                _dbContext.ChangeTracker.Clear();
-
                 // Cek Validasi: Jangan hapus jika sedang dipakai di Resep
                 bool isUsed = await _dbContext.RecipeItems.AnyAsync(ri => ri.IngredientId == item.Id);
                 if (isUsed)
@@ -243,19 +236,11 @@ namespace CostMasterAI.ViewModels
                 }
 
                 // Hapus dari Database
-                var entry = await _dbContext.Ingredients.FindAsync(item.Id);
-                if (entry != null)
-                {
-                    _dbContext.Ingredients.Remove(entry);
-
-                    // Hapus history stok juga agar bersih
-                    var history = _dbContext.StockTransactions.Where(x => x.IngredientId == item.Id);
-                    _dbContext.StockTransactions.RemoveRange(history);
-
-                    await _dbContext.SaveChangesAsync();
-
-                    WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Deleted"));
-                }
+                var history = _dbContext.StockTransactions.Where(x => x.IngredientId == item.Id);
+                _dbContext.StockTransactions.RemoveRange(history);
+                _dbContext.Ingredients.Remove(item);
+                await _dbContext.SaveChangesAsync();
+                WeakReferenceMessenger.Default.Send(new IngredientsChangedMessage("Deleted"));
 
                 // Update UI Collections langsung
                 var itemInList = _allIngredients.FirstOrDefault(i => i.Id == item.Id);
