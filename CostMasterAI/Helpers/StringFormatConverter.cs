@@ -7,7 +7,7 @@ namespace CostMasterAI.Helpers
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            if (value == null) return null;
+            if (value == null) return string.Empty;
             if (parameter == null) return value;
 
             return string.Format((string)parameter, value);

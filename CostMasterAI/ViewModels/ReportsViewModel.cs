@@ -23,8 +23,8 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private double _profitMarginPercent;
 
         // --- INPUT FORM (MANUAL) ---
-        [ObservableProperty] private string _inputNote;
-        [ObservableProperty] private string _inputAmountText;
+        [ObservableProperty] private string _inputNote = string.Empty;
+        [ObservableProperty] private string _inputAmountText = string.Empty;
         [ObservableProperty] private DateTimeOffset _inputDate = DateTimeOffset.Now;
         [ObservableProperty] private int _selectedTypeIndex = 0;
 
@@ -348,7 +348,7 @@ namespace CostMasterAI.ViewModels
 
     public class ChartDataPoint
     {
-        public string Label { get; set; }
+        public string Label { get; set; } = string.Empty;
         public double Value { get; set; }
         public decimal Amount { get; set; }
     }
