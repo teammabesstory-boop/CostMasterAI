@@ -44,6 +44,14 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private decimal _potentialRevenue;
         [ObservableProperty] private decimal _revenueGap;
 
+        // Smart Insights
+        [ObservableProperty] private string _revenueTrend = "Stable";
+        [ObservableProperty] private string _revenueTrendDetail = "Belum cukup data 14 hari.";
+        [ObservableProperty] private string _cashRunwayLabel = "Runway: -";
+        [ObservableProperty] private string _cashRunwayStatus = "Unknown";
+        [ObservableProperty] private string _inventorySignal = "Inventory: -";
+        [ObservableProperty] private string _profitSignal = "Margin: -";
+
         // ==========================================
         // 2. LIVECHARTS PROPERTIES (VISUALISASI)
         // ==========================================
@@ -142,6 +150,8 @@ namespace CostMasterAI.ViewModels
                 PotentialRevenue = calculatedPotentialRevenue;
                 RevenueGap = PotentialRevenue - CurrentRevenue;
 
+                UpdateSmartInsights(allTransactions);
+
                 // ---------------------------------------------------------
                 // STEP 2: LOAD DATA PRODUKSI & ANALISA STRUKTUR BIAYA
                 // ---------------------------------------------------------
@@ -231,6 +241,7 @@ namespace CostMasterAI.ViewModels
                     // --- C. EXECUTIVE METRICS ---
                     CalculateExecutiveSummary(recipes);
                     CalculateProductMatrix(recipes);
+                    UpdateInventorySignal();
                 }
                 else
                 {
@@ -288,6 +299,93 @@ namespace CostMasterAI.ViewModels
             else EfficiencyStatus = "Critical 🚨";
         }
 
+        private void UpdateSmartInsights(List<Transaction> allTransactions)
+        {
+            var today = DateTime.Now.Date;
+            var last7Start = today.AddDays(-6);
+            var prev7Start = today.AddDays(-13);
+            var prev7End = today.AddDays(-7);
+
+            var last7Revenue = allTransactions
+                .Where(t => t.Type == "Income" && t.Date.Date >= last7Start && t.Date.Date <= today)
+                .Sum(t => t.Amount);
+
+            var prev7Revenue = allTransactions
+                .Where(t => t.Type == "Income" && t.Date.Date >= prev7Start && t.Date.Date <= prev7End)
+                .Sum(t => t.Amount);
+
+            if (prev7Revenue <= 0 && last7Revenue <= 0)
+            {
+                RevenueTrend = "Stable";
+                RevenueTrendDetail = "Belum cukup data 14 hari.";
+            }
+            else if (prev7Revenue <= 0)
+            {
+                RevenueTrend = "Uptrend";
+                RevenueTrendDetail = "Lonjakan pemasukan 7 hari terakhir.";
+            }
+            else
+            {
+                var change = (last7Revenue - prev7Revenue) / prev7Revenue * 100m;
+                RevenueTrend = change switch
+                {
+                    > 8 => "Uptrend",
+                    < -8 => "Downtrend",
+                    _ => "Stable"
+                };
+                RevenueTrendDetail = $"Perubahan pemasukan: {change:N1}% dibanding 7 hari sebelumnya.";
+            }
+
+            var expense30Start = today.AddDays(-29);
+            var expense30 = allTransactions
+                .Where(t => t.Type == "Expense" && t.Date.Date >= expense30Start && t.Date.Date <= today)
+                .Sum(t => t.Amount);
+
+            var avgDailyExpense = expense30 / 30m;
+            if (avgDailyExpense <= 0)
+            {
+                CashRunwayLabel = "Runway: -";
+                CashRunwayStatus = "Unknown";
+            }
+            else
+            {
+                var runwayDays = (int)Math.Floor(CashFlowBalance / avgDailyExpense);
+                CashRunwayLabel = $"Runway: {Math.Max(0, runwayDays)} hari";
+                CashRunwayStatus = runwayDays switch
+                {
+                    >= 60 => "Healthy",
+                    >= 30 => "Watch",
+                    _ => "Critical"
+                };
+            }
+
+            if (CurrentRevenue <= 0)
+            {
+                ProfitSignal = "Margin: -";
+            }
+            else
+            {
+                var margin = (double)((CurrentRevenue - CurrentExpense) / CurrentRevenue * 100);
+                ProfitSignal = margin switch
+                {
+                    >= 35 => $"Margin sehat {margin:N1}%",
+                    >= 20 => $"Margin dijaga {margin:N1}%",
+                    _ => $"Margin rawan {margin:N1}%"
+                };
+            }
+        }
+
+        private void UpdateInventorySignal()
+        {
+            var inventoryVal = TotalProductionCost;
+            InventorySignal = inventoryVal switch
+            {
+                >= 50_000_000 => "Inventory: High",
+                >= 10_000_000 => "Inventory: Balanced",
+                _ => "Inventory: Lean"
+            };
+        }
+
         private void CalculateProductMatrix(List<Recipe> recipes)
         {
             StarProductsCount = 0; CashCowCount = 0; PuzzleCount = 0; DogCount = 0;
@@ -335,6 +433,7 @@ namespace CostMasterAI.ViewModels
             CostStructureSeries = Array.Empty<ISeries>();
             TopCostDrivers.Clear();
             StarProductsCount = 0; CashCowCount = 0; PuzzleCount = 0; DogCount = 0;
+            InventorySignal = "Inventory: -";
         }
     }
 }

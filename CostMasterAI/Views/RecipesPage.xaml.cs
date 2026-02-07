@@ -19,7 +19,7 @@ namespace CostMasterAI.Views
 
             // Ambil ViewModel dari Service Locator (App.xaml.cs) yang sudah di-setup DI
             // Container otomatis mengurus dependensi (AppDbContext & AIService)
-            ViewModel = App.Current.Services.GetService<RecipesViewModel>();
+            ViewModel = App.Current.Services.GetRequiredService<RecipesViewModel>();
 
             // Set DataContext agar Binding XAML berfungsi
             this.DataContext = ViewModel;

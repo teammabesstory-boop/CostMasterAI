@@ -2,7 +2,8 @@
     x:Class="CostMasterAI.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:CostMasterAI">
+    xmlns:local="using:CostMasterAI"
+    xmlns:toolkit="using:CommunityToolkit.WinUI">
 
     <Application.Resources>
         <ResourceDictionary>
@@ -10,11 +11,20 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
 
+            <toolkit:AttachedDropShadow x:Key="CardShadow"
+                                        BlurRadius="24"
+                                        Color="#000000"
+                                        CornerRadius="12"
+                                        IsMasked="True"
+                                        Offset="0,6,0"
+                                        Opacity="0.25" />
+
             <Style x:Key="ModernCardStyle" TargetType="Grid">
                 <Setter Property="CornerRadius" Value="12"/>
                 <Setter Property="Background" Value="{ThemeResource CardBackgroundBrush}"/>
                 <Setter Property="BorderBrush" Value="{ThemeResource CardBorderBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="toolkit:Effects.Shadow" Value="{StaticResource CardShadow}"/>
             </Style>
 
             <Style x:Key="ModernButtonStyle" TargetType="Button">

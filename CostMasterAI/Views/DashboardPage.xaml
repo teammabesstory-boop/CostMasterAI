@@ -18,10 +18,10 @@
         <helpers:BoolToVisibilityConverter x:Key="BoolVisConv"/>
 
         <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
-        <FontFamily x:Key="AppFont">/Assets/Satoshi-Regular.otf#Satoshi</FontFamily>
-        <FontFamily x:Key="AppFontBold">/Assets/Satoshi-Bold.otf#Satoshi</FontFamily>
-        <FontFamily x:Key="AppFontMedium">/Assets/Satoshi-Medium.otf#Satoshi</FontFamily>
-        <FontFamily x:Key="AppFontBlack">/Assets/Satoshi-Black.otf#Satoshi</FontFamily>
+        <FontFamily x:Key="AppFont">/Assets/PlusJakartaSans-Regular.ttf#Plus Jakarta Sans</FontFamily>
+        <FontFamily x:Key="AppFontBold">/Assets/PlusJakartaSans-Bold.ttf#Plus Jakarta Sans</FontFamily>
+        <FontFamily x:Key="AppFontMedium">/Assets/PlusJakartaSans-Medium.ttf#Plus Jakarta Sans</FontFamily>
+        <FontFamily x:Key="AppFontBlack">/Assets/PlusJakartaSans-ExtraBold.ttf#Plus Jakarta Sans</FontFamily>
 
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource AppFontMedium}"/>
@@ -47,7 +47,12 @@
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="{ThemeResource CardBorderBrush}"/>
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundBrush}"/>
+            <Setter Property="Background" Value="{ThemeResource GlassCardBrush}"/>
+            <Setter Property="Shadow">
+                <Setter.Value>
+                    <ThemeShadow />
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="MatrixCardStyle" TargetType="Grid">
@@ -61,6 +66,11 @@
             <Setter Property="FontSize" Value="36"/>
             <Setter Property="CharacterSpacing" Value="-20"/>
         </Style>
+
+        <AcrylicBrush x:Key="GlassCardBrush"
+                      TintColor="#0B1220"
+                      TintOpacity="0.7"
+                      FallbackColor="#111827"/>
     </Page.Resources>
 
     <ScrollViewer Background="{ThemeResource AppBackgroundBrush}" UseLayoutRounding="True">
@@ -74,6 +84,7 @@
 
         <Grid Padding="40">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -223,7 +234,42 @@
                 </Grid>
             </Grid>
 
-            <Grid Grid.Row="3" ColumnSpacing="32">
+            <Grid Grid.Row="3" ColumnSpacing="24" Margin="0,0,0,32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0" Style="{StaticResource DashboardCardStyle}" Height="140">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="SMART INSIGHT" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xea44;" FontSize="18" Foreground="{ThemeResource AccentBrush}"/>
+                            <TextBlock Text="{Binding RevenueTrend}" FontSize="18" FontFamily="{StaticResource AppFontBlack}" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding RevenueTrendDetail}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Column="1" Style="{StaticResource DashboardCardStyle}" Height="140">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="CASH RUNWAY" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <TextBlock Text="{Binding CashRunwayLabel}" FontSize="24" FontFamily="{StaticResource AppFontBlack}" Foreground="{ThemeResource SuccessBrush}"/>
+                        <TextBlock Text="{Binding CashRunwayStatus}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Column="2" Style="{StaticResource DashboardCardStyle}" Height="140">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="HEALTH SIGNAL" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
+                        <TextBlock Text="{Binding InventorySignal}" FontSize="16" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                        <TextBlock Text="{Binding ProfitSignal}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <Grid Grid.Row="4" ColumnSpacing="32">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.2*"/>
                     <ColumnDefinition Width="1.8*"/>

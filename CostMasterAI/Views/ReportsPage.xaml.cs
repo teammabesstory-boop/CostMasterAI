@@ -16,7 +16,7 @@ namespace CostMasterAI.Views
 
             // 1. Ambil ViewModel dari Service Locator (Dependency Injection)
             // Container otomatis menyuntikkan AppDbContext ke dalam ViewModel
-            ViewModel = App.Current.Services.GetService<ReportsViewModel>();
+            ViewModel = App.Current.Services.GetRequiredService<ReportsViewModel>();
 
             // 2. Set DataContext
             this.DataContext = ViewModel;

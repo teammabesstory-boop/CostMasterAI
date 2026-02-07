@@ -23,12 +23,36 @@ namespace CostMasterAI.ViewModels
         // --- DATA COLLECTIONS ---
         private List<Ingredient> _allIngredients = new(); // Cache untuk pencarian cepat
         public ObservableCollection<Ingredient> Ingredients { get; } = new();
+        public ObservableCollection<Ingredient> LowStockIngredients { get; } = new();
+        public ObservableCollection<StockTransaction> RecentTransactions { get; } = new();
+        public ObservableCollection<string> CategoryOptions { get; } = new();
+        public ObservableCollection<string> UnitFilterOptions { get; } = new();
         public List<string> UnitOptions => UnitHelper.CommonUnits;
+        public List<string> StockStatusOptions { get; } = new()
+        {
+            "All",
+            "Healthy",
+            "Low Stock",
+            "Out of Stock"
+        };
+        public List<string> SortOptions { get; } = new()
+        {
+            "Name (A-Z)",
+            "Name (Z-A)",
+            "Cost/Unit (High)",
+            "Cost/Unit (Low)",
+            "Stock (High)",
+            "Stock (Low)"
+        };
 
         // --- STATE & SELECTION ---
         [ObservableProperty] private Ingredient? _selectedIngredient;
         [ObservableProperty] private bool _isEditing;
         [ObservableProperty] private string _searchText = "";
+        [ObservableProperty] private string _selectedCategory = "All";
+        [ObservableProperty] private string _selectedStockStatus = "All";
+        [ObservableProperty] private string _selectedSort = "Name (A-Z)";
+        [ObservableProperty] private string _selectedUnitFilter = "All";
 
         // --- FORM INPUTS ---
         [ObservableProperty]
@@ -53,6 +77,22 @@ namespace CostMasterAI.ViewModels
         // --- NEW: INVENTORY INPUTS ---
         [ObservableProperty] private string _inputStock = "0"; // Stok Fisik
         [ObservableProperty] private string _inputMinStock = "0"; // Alert Limit
+        [ObservableProperty] private string _inputAdjustment = "0";
+        [ObservableProperty] private string _inputAdjustmentNote = "";
+
+        // --- DASHBOARD INSIGHTS ---
+        [ObservableProperty] private string _totalIngredientsLabel = "0";
+        [ObservableProperty] private string _inventoryValueLabel = "Rp 0";
+        [ObservableProperty] private string _averageCostLabel = "Rp 0";
+        [ObservableProperty] private string _lowStockLabel = "0";
+        [ObservableProperty] private string _outOfStockLabel = "0";
+        [ObservableProperty] private string _stockHealthLabel = "Healthy";
+        [ObservableProperty] private string _valueAtRiskLabel = "Rp 0";
+        [ObservableProperty] private string _lastSyncLabel = "-";
+        [ObservableProperty] private string _selectedIngredientCostLabel = "-";
+        [ObservableProperty] private string _selectedIngredientStockValueLabel = "-";
+        [ObservableProperty] private string _selectedIngredientStatusLabel = "-";
+        [ObservableProperty] private string _selectedIngredientUsageLabel = "-";
 
         // --- COMPUTED PROPERTY (Real-time Feedback) ---
         public string CalculatedCostPerUnit
@@ -98,7 +138,9 @@ namespace CostMasterAI.ViewModels
                     .ToListAsync();
 
                 _allIngredients = data;
+                UpdateFilterOptions();
                 PerformSearch();
+                await UpdateInsightsAsync();
             }
             catch (Exception ex)
             {
@@ -112,6 +154,31 @@ namespace CostMasterAI.ViewModels
             PerformSearch();
         }
 
+        partial void OnSelectedCategoryChanged(string value)
+        {
+            PerformSearch();
+        }
+
+        partial void OnSelectedStockStatusChanged(string value)
+        {
+            PerformSearch();
+        }
+
+        partial void OnSelectedSortChanged(string value)
+        {
+            PerformSearch();
+        }
+
+        partial void OnSelectedUnitFilterChanged(string value)
+        {
+            PerformSearch();
+        }
+
+        partial void OnSelectedIngredientChanged(Ingredient? value)
+        {
+            UpdateSelectedIngredientInsights();
+        }
+
         private void PerformSearch()
         {
             Ingredients.Clear();
@@ -122,7 +189,130 @@ namespace CostMasterAI.ViewModels
                 query = query.Where(i => i.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
             }
 
+            if (!string.IsNullOrWhiteSpace(SelectedCategory) && SelectedCategory != "All")
+            {
+                query = query.Where(i => i.Category.Equals(SelectedCategory, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(SelectedUnitFilter) && SelectedUnitFilter != "All")
+            {
+                query = query.Where(i => i.Unit.Equals(SelectedUnitFilter, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(SelectedStockStatus) && SelectedStockStatus != "All")
+            {
+                query = query.Where(i => GetStockStatus(i) == SelectedStockStatus);
+            }
+
+            query = SelectedSort switch
+            {
+                "Name (Z-A)" => query.OrderByDescending(i => i.Name),
+                "Cost/Unit (High)" => query.OrderByDescending(i => i.RealCostPerUnit),
+                "Cost/Unit (Low)" => query.OrderBy(i => i.RealCostPerUnit),
+                "Stock (High)" => query.OrderByDescending(i => i.CurrentStock),
+                "Stock (Low)" => query.OrderBy(i => i.CurrentStock),
+                _ => query.OrderBy(i => i.Name)
+            };
+
             foreach (var item in query) Ingredients.Add(item);
+            UpdateSelectedIngredientInsights();
+        }
+
+        private void UpdateFilterOptions()
+        {
+            CategoryOptions.Clear();
+            CategoryOptions.Add("All");
+            foreach (var category in _allIngredients.Select(i => i.Category).Distinct().OrderBy(c => c))
+            {
+                CategoryOptions.Add(category);
+            }
+
+            UnitFilterOptions.Clear();
+            UnitFilterOptions.Add("All");
+            foreach (var unit in _allIngredients.Select(i => i.Unit).Distinct().OrderBy(u => u))
+            {
+                UnitFilterOptions.Add(unit);
+            }
+        }
+
+        private async Task UpdateInsightsAsync()
+        {
+            TotalIngredientsLabel = _allIngredients.Count.ToString("N0");
+
+            var totalValue = _allIngredients.Sum(i => i.RealCostPerUnit * (decimal)i.CurrentStock);
+            InventoryValueLabel = $"Rp {totalValue:N0}";
+
+            var avgCost = _allIngredients.Any() ? _allIngredients.Average(i => i.RealCostPerUnit) : 0m;
+            AverageCostLabel = $"Rp {avgCost:N2}";
+
+            var lowStock = _allIngredients.Count(i => i.MinimumStock > 0 && i.CurrentStock <= i.MinimumStock && i.CurrentStock > 0);
+            var outOfStock = _allIngredients.Count(i => i.CurrentStock <= 0);
+            LowStockLabel = lowStock.ToString("N0");
+            OutOfStockLabel = outOfStock.ToString("N0");
+
+            var totalCount = _allIngredients.Count;
+            var riskScore = totalCount == 0 ? 0 : (double)(lowStock + outOfStock) / totalCount;
+            StockHealthLabel = riskScore switch
+            {
+                > 0.4 => "Critical",
+                > 0.2 => "Watchlist",
+                _ => "Healthy"
+            };
+
+            var valueAtRisk = _allIngredients
+                .Where(i => i.MinimumStock > 0 && i.CurrentStock < i.MinimumStock)
+                .Sum(i => (decimal)Math.Max(0, i.MinimumStock - i.CurrentStock) * i.RealCostPerUnit);
+            ValueAtRiskLabel = $"Rp {valueAtRisk:N0}";
+
+            var recent = await _dbContext.StockTransactions
+                .AsNoTracking()
+                .OrderByDescending(t => t.Date)
+                .Take(8)
+                .ToListAsync();
+
+            RecentTransactions.Clear();
+            foreach (var tx in recent)
+            {
+                RecentTransactions.Add(tx);
+            }
+
+            LowStockIngredients.Clear();
+            foreach (var item in _allIngredients
+                .Where(i => i.MinimumStock > 0 && i.CurrentStock <= i.MinimumStock)
+                .OrderBy(i => i.CurrentStock))
+            {
+                LowStockIngredients.Add(item);
+            }
+
+            LastSyncLabel = DateTime.Now.ToString("dd MMM yyyy HH:mm");
+            UpdateSelectedIngredientInsights();
+        }
+
+        private string GetStockStatus(Ingredient ingredient)
+        {
+            if (ingredient.CurrentStock <= 0) return "Out of Stock";
+            if (ingredient.MinimumStock > 0 && ingredient.CurrentStock <= ingredient.MinimumStock) return "Low Stock";
+            return "Healthy";
+        }
+
+        private void UpdateSelectedIngredientInsights()
+        {
+            if (SelectedIngredient == null)
+            {
+                SelectedIngredientCostLabel = "-";
+                SelectedIngredientStockValueLabel = "-";
+                SelectedIngredientStatusLabel = "-";
+                SelectedIngredientUsageLabel = "-";
+                return;
+            }
+
+            SelectedIngredientCostLabel = $"Rp {SelectedIngredient.RealCostPerUnit:N2} / {SelectedIngredient.Unit}";
+            var stockValue = SelectedIngredient.RealCostPerUnit * (decimal)SelectedIngredient.CurrentStock;
+            SelectedIngredientStockValueLabel = $"Rp {stockValue:N0}";
+            SelectedIngredientStatusLabel = GetStockStatus(SelectedIngredient);
+            SelectedIngredientUsageLabel = SelectedIngredient.MinimumStock > 0
+                ? $"Min {SelectedIngredient.MinimumStock:N0} {SelectedIngredient.Unit}"
+                : "Min belum diatur";
         }
 
         // --- CRUD COMMANDS ---
@@ -303,7 +493,64 @@ namespace CostMasterAI.ViewModels
             InputYield = "100";
             InputStock = "0";
             InputMinStock = "0";
+            InputAdjustment = "0";
+            InputAdjustmentNote = "";
             IsEditing = false;
+        }
+
+        [RelayCommand]
+        private async Task ApplyStockAdjustmentAsync(string direction)
+        {
+            if (SelectedIngredient == null) return;
+            if (!double.TryParse(InputAdjustment, out var qty) || qty <= 0) return;
+
+            var delta = direction == "IN" ? qty : -qty;
+
+            try
+            {
+                var existing = await _dbContext.Ingredients.FindAsync(SelectedIngredient.Id);
+                if (existing == null) return;
+
+                existing.CurrentStock = Math.Max(0, existing.CurrentStock + delta);
+                _dbContext.Ingredients.Update(existing);
+
+                _dbContext.StockTransactions.Add(new StockTransaction
+                {
+                    IngredientId = existing.Id,
+                    Date = DateTime.Now,
+                    Type = direction == "IN" ? "In" : "Out",
+                    Quantity = qty,
+                    Unit = existing.Unit,
+                    Description = string.IsNullOrWhiteSpace(InputAdjustmentNote)
+                        ? "Manual Adjustment"
+                        : InputAdjustmentNote
+                });
+
+                await _dbContext.SaveChangesAsync();
+                await LoadDataAsync();
+                InputAdjustment = "0";
+                InputAdjustmentNote = "";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Adjustment Error: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        private async Task RefreshInsightsAsync()
+        {
+            await LoadDataAsync();
+        }
+
+        [RelayCommand]
+        private void ClearFilters()
+        {
+            SearchText = "";
+            SelectedCategory = "All";
+            SelectedStockStatus = "All";
+            SelectedSort = "Name (A-Z)";
+            SelectedUnitFilter = "All";
         }
 
         [RelayCommand]

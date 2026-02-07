@@ -44,14 +44,17 @@ namespace CostMasterAI.Views
             // 2. Handle Menu Item Biasa
             else if (args.SelectedItemContainer != null)
             {
-                var navItemTag = args.SelectedItemContainer.Tag.ToString();
-                NavView_Navigate(navItemTag, args.RecommendedNavigationTransitionInfo);
+                var navItemTag = args.SelectedItemContainer.Tag?.ToString();
+                if (!string.IsNullOrEmpty(navItemTag))
+                {
+                    NavView_Navigate(navItemTag, args.RecommendedNavigationTransitionInfo);
+                }
             }
         }
 
         private void NavView_Navigate(string navItemTag, NavigationTransitionInfo transitionInfo)
         {
-            Type _page = null;
+            Type? _page = null;
 
             switch (navItemTag)
             {
