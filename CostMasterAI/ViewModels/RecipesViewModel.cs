@@ -23,8 +23,20 @@ namespace CostMasterAI.ViewModels
 
         // Collections
         public ObservableCollection<Recipe> Recipes { get; } = new();
+        public ObservableCollection<Recipe> FilteredRecipes { get; } = new();
         public ObservableCollection<Ingredient> AvailableIngredients { get; } = new();
+        public ObservableCollection<RecipeCostDriver> TopCostDrivers { get; } = new();
         public List<string> UnitOptions => UnitHelper.CommonUnits;
+        public List<string> RecipeSortOptions { get; } = new()
+        {
+            "Last Updated",
+            "Name (A-Z)",
+            "Name (Z-A)",
+            "Batch Cost (High)",
+            "Batch Cost (Low)",
+            "Yield (High)",
+            "Yield (Low)"
+        };
 
         // Selection & Basic Inputs
         [ObservableProperty]
@@ -49,6 +61,9 @@ namespace CostMasterAI.ViewModels
         [ObservableProperty] private string _usageQtyInput = "0";
         [ObservableProperty] private string _selectedUsageUnit = "Gram";
         [ObservableProperty] private string _newRecipeName = "";
+        [ObservableProperty] private string _recipeSearchText = "";
+        [ObservableProperty] private bool _showSubRecipeOnly;
+        [ObservableProperty] private string _selectedRecipeSort = "Last Updated";
 
         // Input Overhead
         [ObservableProperty] private string _newOverheadName = "";
@@ -77,6 +92,17 @@ namespace CostMasterAI.ViewModels
         [NotifyPropertyChangedFor(nameof(FinalHppPerUnit))]
         [NotifyPropertyChangedFor(nameof(EstimatedProfitPerUnit))]
         private double _wasteBufferPercent = 5.0;
+
+        [ObservableProperty] private string _recipeHealthLabel = "Stable";
+        [ObservableProperty] private string _recipeComplexityLabel = "Low";
+        [ObservableProperty] private string _recipeLastUpdatedLabel = "-";
+        [ObservableProperty] private string _recipeBatchCostLabel = "Rp 0";
+        [ObservableProperty] private string _recipeCostPerUnitLabel = "Rp 0";
+        [ObservableProperty] private string _recipeCostPerGramLabel = "Rp 0";
+        [ObservableProperty] private string _recipeIngredientCountLabel = "0";
+        [ObservableProperty] private string _recipeOverheadCountLabel = "0";
+        [ObservableProperty] private string _recipePrimaryCategoryLabel = "-";
+        [ObservableProperty] private string _recipeYieldEfficiencyLabel = "-";
 
         // Flag untuk mencegah infinite loop (Harga -> Margin -> Harga -> Margin...)
         private bool _isUpdatingFromPrice = false;
@@ -280,6 +306,9 @@ namespace CostMasterAI.ViewModels
         public decimal RecommendedPriceMargin => FinalHppPerUnit > 0 ? FinalHppPerUnit / 0.6m : 0;
         public decimal RecommendedPriceMarkup => FinalHppPerUnit * 2;
 
+        public int SelectedRecipeItemCount => SelectedRecipe?.Items?.Count ?? 0;
+        public int SelectedRecipeOverheadCount => SelectedRecipe?.Overheads?.Count ?? 0;
+
         public string GenerateCostDetailString()
         {
             if (SelectedRecipe == null) return "Data tidak tersedia.";
@@ -415,6 +444,7 @@ namespace CostMasterAI.ViewModels
             {
                 Recipes.Add(r);
             }
+            ApplyRecipeFilters();
         }
 
         // --- COMMANDS ---
@@ -622,6 +652,9 @@ namespace CostMasterAI.ViewModels
             OnPropertyChanged(nameof(MainIngredients));
             OnPropertyChanged(nameof(SupportIngredients));
             OnPropertyChanged(nameof(PackagingItems));
+            OnPropertyChanged(nameof(SelectedRecipeItemCount));
+            OnPropertyChanged(nameof(SelectedRecipeOverheadCount));
+            UpdateRecipeInsights();
         }
 
         [RelayCommand]
@@ -980,6 +1013,144 @@ namespace CostMasterAI.ViewModels
             if (value != null) SelectedUsageUnit = value.Unit;
         }
 
+        partial void OnSelectedRecipeChanged(Recipe? value)
+        {
+            UpdateRecipeInsights();
+        }
+
+        partial void OnRecipeSearchTextChanged(string value)
+        {
+            ApplyRecipeFilters();
+        }
+
+        partial void OnShowSubRecipeOnlyChanged(bool value)
+        {
+            ApplyRecipeFilters();
+        }
+
+        partial void OnSelectedRecipeSortChanged(string value)
+        {
+            ApplyRecipeFilters();
+        }
+
+        private void ApplyRecipeFilters()
+        {
+            FilteredRecipes.Clear();
+            IEnumerable<Recipe> query = Recipes;
+
+            if (!string.IsNullOrWhiteSpace(RecipeSearchText))
+            {
+                query = query.Where(r => r.Name.Contains(RecipeSearchText, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (ShowSubRecipeOnly)
+            {
+                query = query.Where(r => r.IsSubRecipe);
+            }
+
+            query = SelectedRecipeSort switch
+            {
+                "Name (A-Z)" => query.OrderBy(r => r.Name),
+                "Name (Z-A)" => query.OrderByDescending(r => r.Name),
+                "Batch Cost (High)" => query.OrderByDescending(r => r.TotalBatchCost),
+                "Batch Cost (Low)" => query.OrderBy(r => r.TotalBatchCost),
+                "Yield (High)" => query.OrderByDescending(r => r.YieldQty),
+                "Yield (Low)" => query.OrderBy(r => r.YieldQty),
+                _ => query.OrderByDescending(r => r.LastUpdated)
+            };
+
+            foreach (var recipe in query)
+            {
+                FilteredRecipes.Add(recipe);
+            }
+        }
+
+        private void UpdateRecipeInsights()
+        {
+            if (SelectedRecipe == null)
+            {
+                RecipeHealthLabel = "Stable";
+                RecipeComplexityLabel = "Low";
+                RecipeLastUpdatedLabel = "-";
+                RecipeBatchCostLabel = "Rp 0";
+                RecipeCostPerUnitLabel = "Rp 0";
+                RecipeCostPerGramLabel = "Rp 0";
+                RecipeIngredientCountLabel = "0";
+                RecipeOverheadCountLabel = "0";
+                RecipePrimaryCategoryLabel = "-";
+                RecipeYieldEfficiencyLabel = "-";
+                TopCostDrivers.Clear();
+                return;
+            }
+
+            RecipeLastUpdatedLabel = SelectedRecipe.LastUpdated.ToString("dd MMM yyyy HH:mm");
+            RecipeBatchCostLabel = $"Rp {FinalHppBatch:N0}";
+            RecipeCostPerUnitLabel = $"Rp {FinalHppPerUnit:N2}";
+            RecipeCostPerGramLabel = TotalMainDoughWeight > 0
+                ? $"Rp {FinalHppBatch / (decimal)TotalMainDoughWeight:N2} / g"
+                : "Rp 0";
+            RecipeIngredientCountLabel = SelectedRecipeItemCount.ToString("N0");
+            RecipeOverheadCountLabel = SelectedRecipeOverheadCount.ToString("N0");
+
+            var mainCount = MainIngredients.Count();
+            var supportCount = SupportIngredients.Count();
+            var packagingCount = PackagingItems.Count();
+            RecipePrimaryCategoryLabel = mainCount >= supportCount && mainCount >= packagingCount
+                ? "Main Ingredients"
+                : supportCount >= packagingCount
+                    ? "Support Ingredients"
+                    : "Packaging";
+
+            var efficiency = SelectedRecipe.TargetPortionSize > 0
+                ? (TotalMainDoughWeight / SelectedRecipe.TargetPortionSize).ToString("N0")
+                : "-";
+            RecipeYieldEfficiencyLabel = SelectedRecipe.TargetPortionSize > 0
+                ? $"{efficiency} pcs potential"
+                : "-";
+
+            var healthScore = SelectedRecipe.FoodCostPercentage;
+            RecipeHealthLabel = healthScore switch
+            {
+                > 45 => "Cost Heavy",
+                > 35 => "Need Optimize",
+                _ => "Healthy"
+            };
+
+            var complexityScore = SelectedRecipeItemCount + SelectedRecipeOverheadCount;
+            RecipeComplexityLabel = complexityScore switch
+            {
+                > 18 => "High",
+                > 10 => "Medium",
+                _ => "Low"
+            };
+
+            TopCostDrivers.Clear();
+            foreach (var item in SelectedRecipe.Items
+                .OrderByDescending(i => i.CalculatedCost)
+                .Take(5))
+            {
+                var share = FinalHppBatch > 0 ? (double)(item.CalculatedCost / FinalHppBatch) * 100 : 0;
+                TopCostDrivers.Add(new RecipeCostDriver
+                {
+                    Name = item.Ingredient?.Name ?? "-",
+                    Cost = item.CalculatedCost,
+                    Share = share
+                });
+            }
+        }
+
+        [RelayCommand]
+        private void ApplyPresetMargin(string preset)
+        {
+            TargetMarginPercent = preset switch
+            {
+                "Low" => 25,
+                "Standard" => 40,
+                "Premium" => 55,
+                _ => TargetMarginPercent
+            };
+        }
+
         private async Task ReloadSelectedRecipe()
         {
             if (SelectedRecipe == null) return;
@@ -1002,6 +1173,7 @@ namespace CostMasterAI.ViewModels
                 if (index != -1) { Recipes[index] = updatedRecipe; SelectedRecipe = updatedRecipe; }
                 TargetScalingQty = updatedRecipe.YieldQty;
                 NotifyRecalculation();
+                UpdateRecipeInsights();
             }
         }
 
@@ -1011,6 +1183,13 @@ namespace CostMasterAI.ViewModels
             {
                 _ = UpdateRecipeDetailsAsync();
             }
+        }
+
+        public class RecipeCostDriver
+        {
+            public string Name { get; set; } = string.Empty;
+            public decimal Cost { get; set; }
+            public double Share { get; set; }
         }
     }
 }
