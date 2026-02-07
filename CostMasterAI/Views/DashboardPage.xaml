@@ -62,22 +62,10 @@
             <Setter Property="CharacterSpacing" Value="-20"/>
         </Style>
 
-        <ResourceDictionary.ThemeDictionaries>
-            <ResourceDictionary x:Key="Light">
-                <AcrylicBrush x:Key="GlassCardBrush"
-                              BackgroundSource="HostBackdrop"
-                              TintColor="#FFFFFF"
-                              TintOpacity="0.65"
-                              FallbackColor="#F4F6FB"/>
-            </ResourceDictionary>
-            <ResourceDictionary x:Key="Dark">
-                <AcrylicBrush x:Key="GlassCardBrush"
-                              BackgroundSource="HostBackdrop"
-                              TintColor="#0B1220"
-                              TintOpacity="0.7"
-                              FallbackColor="#111827"/>
-            </ResourceDictionary>
-        </ResourceDictionary.ThemeDictionaries>
+        <AcrylicBrush x:Key="GlassCardBrush"
+                      TintColor="#0B1220"
+                      TintOpacity="0.7"
+                      FallbackColor="#111827"/>
     </Page.Resources>
 
     <ScrollViewer Background="{ThemeResource AppBackgroundBrush}" UseLayoutRounding="True">
