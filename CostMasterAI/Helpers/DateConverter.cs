@@ -17,7 +17,7 @@ namespace CostMasterAI.Helpers
             if (value is DateTimeOffset dto)
                 return dto.ToString(format);
 
-            return value.ToString();
+            return value.ToString() ?? string.Empty;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)

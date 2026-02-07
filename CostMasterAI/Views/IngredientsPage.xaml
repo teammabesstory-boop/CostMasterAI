@@ -13,6 +13,7 @@
         <helpers:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
 
         <helpers:BoolToVisibilityConverter x:Key="BoolVisConv"/>
+        <helpers:DateConverter x:Key="DateConv"/>
         <helpers:CurrencyConverter x:Key="MoneyConv"/>
 
         <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
@@ -50,255 +51,440 @@
         </Style>
     </Page.Resources>
 
-    <Grid Background="{ThemeResource AppBackgroundBrush}" Padding="40" UseLayoutRounding="True">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <ScrollViewer Background="{ThemeResource AppBackgroundBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Padding="40" UseLayoutRounding="True">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Margin="0,0,0,32">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+            <Grid Grid.Row="0" Margin="0,0,0,32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-            <StackPanel Spacing="4">
-                <TextBlock Text="Database Bahan Baku" Style="{StaticResource PageTitleStyle}"/>
-                <TextBlock Text="Kelola harga pasar, inventory (stok), dan import data excel." FontSize="16" FontFamily="{StaticResource AppFont}" Foreground="{ThemeResource TextSecondaryBrush}" Margin="0"/>
-            </StackPanel>
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Database Bahan Baku" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="Kelola harga pasar, inventory (stok), dan import data excel." FontSize="16" FontFamily="{StaticResource AppFont}" Foreground="{ThemeResource TextSecondaryBrush}" Margin="0"/>
+                </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                <Button Command="{Binding ImportExcelCommand}" Style="{StaticResource ModernButtonStyle}" Background="{ThemeResource CardBackgroundBrush}" BorderBrush="{ThemeResource CardBorderBrush}" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xed04;" FontSize="16" Foreground="{ThemeResource SuccessBrush}"/>
-                        <TextBlock Text="Import Excel" FontSize="14" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
-                    </StackPanel>
-                </Button>
-
-                <Grid Width="280">
-                    <TextBox PlaceholderText="Cari nama bahan..." Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                             CornerRadius="8" BorderThickness="1" Padding="10,8" FontFamily="{StaticResource AppFont}">
-                        <TextBox.Header>
-                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,4">
-                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf0d1;" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                <TextBlock Text="Quick Search" FontSize="12" Opacity="0.7" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                            </StackPanel>
-                        </TextBox.Header>
-                    </TextBox>
-                </Grid>
-            </StackPanel>
-        </Grid>
-
-        <Grid Grid.Row="1" ColumnSpacing="32">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="380"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <Grid Grid.Column="0" Style="{StaticResource IngredientCardStyle}" VerticalAlignment="Top">
-                <StackPanel Spacing="20">
-                    <Grid BorderThickness="0,0,0,1" BorderBrush="{ThemeResource CardBorderBrush}" Padding="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="{Binding IsEditing, Converter={StaticResource BoolVisConv}, ConverterParameter='Mode Edit / Opname', FallbackValue='Input Data Bahan'}" 
-                                       FontFamily="{StaticResource AppFontBold}" FontSize="18" Foreground="{ThemeResource AccentBrush}"/>
-                            <TextBlock Text="Detail harga &amp; stok gudang." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
-                        </StackPanel>
-                        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Command="{Binding ResetInputCommand}" Background="Transparent" Padding="8" ToolTipService.ToolTip="Reset Form">
-                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf064;" FontSize="16" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                        </Button>
-                    </Grid>
-
-                    <TextBox Header="Nama Bahan" PlaceholderText="Contoh: Tepung Segitiga" Text="{Binding InputName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Header="Harga Beli (Rp)" PlaceholderText="0" Text="{Binding InputPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBox Grid.Column="1" Header="Qty Kemasan" PlaceholderText="1000" Text="{Binding InputQty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                    </Grid>
-
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*"/>
-                            <ColumnDefinition Width="1*"/>
-                        </Grid.ColumnDefinitions>
-                        <ComboBox Grid.Column="0" Header="Satuan" ItemsSource="{Binding UnitOptions}" SelectedItem="{Binding InputUnit, Mode=TwoWay}" HorizontalAlignment="Stretch" CornerRadius="6" FontFamily="{StaticResource AppFontMedium}"/>
-                        <TextBox Grid.Column="1" Header="Yield %" Text="{Binding InputYield, Mode=TwoWay}" ToolTipService.ToolTip="Persentase berat bersih"/>
-                    </Grid>
-
-                    <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="8" Padding="16" Margin="0,8,0,0">
-                        <StackPanel Spacing="12">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeb55;" FontSize="16" Foreground="{ThemeResource AccentBrush}"/>
-                                <TextBlock Text="MANAJEMEN STOK (GUDANG)" FontFamily="{StaticResource AppFontBold}" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
-                            </StackPanel>
-
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0" Header="Stok Fisik (Opname)" Text="{Binding InputStock, Mode=TwoWay}" 
-                                         PlaceholderText="0" ToolTipService.ToolTip="Masukkan jumlah real saat ini untuk update stok"/>
-                                <TextBox Grid.Column="1" Header="Min. Alert" Text="{Binding InputMinStock, Mode=TwoWay}" 
-                                         PlaceholderText="0" ToolTipService.ToolTip="Batas minimal untuk peringatan belanja"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="ESTIMASI COST DASAR" FontSize="11" Opacity="0.6" FontFamily="{StaticResource AppFontBold}" CharacterSpacing="50" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                            <TextBlock Text="{Binding CalculatedCostPerUnit}" FontSize="20" FontFamily="{StaticResource AppFontBlack}" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,4,0,0"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <Button Command="{Binding SaveIngredientCommand}" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Stretch" Height="44">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button Command="{Binding ImportExcelCommand}" Style="{StaticResource ModernButtonStyle}" Background="{ThemeResource CardBackgroundBrush}" BorderBrush="{ThemeResource CardBorderBrush}" BorderThickness="1">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf0b1;" FontSize="18"/>
-                            <TextBlock Text="Simpan Data &amp; Stok" FontFamily="{StaticResource AppFontBold}" FontSize="14"/>
+                            <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xed04;" FontSize="16" Foreground="{ThemeResource SuccessBrush}"/>
+                            <TextBlock Text="Import Excel" FontSize="14" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
                         </StackPanel>
                     </Button>
+
+                    <Grid Width="280">
+                        <TextBox PlaceholderText="Cari nama bahan..." Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 CornerRadius="8" BorderThickness="1" Padding="10,8" FontFamily="{StaticResource AppFont}">
+                            <TextBox.Header>
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,4">
+                                    <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf0d1;" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="Quick Search" FontSize="12" Opacity="0.7" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                            </TextBox.Header>
+                        </TextBox>
+                    </Grid>
                 </StackPanel>
             </Grid>
 
-            <Grid Grid.Column="1" Style="{StaticResource IngredientCardStyle}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+            <Grid Grid.Row="1" RowSpacing="28">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0" Margin="0,0,0,16">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="6" Padding="10,6">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <TextBlock Text="{Binding Ingredients.Count}" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
-                                    <TextBlock Text="Items Terdaftar" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource AccentBrush}"/>
+                <Grid Grid.Row="0" Style="{StaticResource IngredientCardStyle}" VerticalAlignment="Top">
+                    <StackPanel Spacing="20">
+                        <Grid BorderThickness="0,0,0,1" BorderBrush="{ThemeResource CardBorderBrush}" Padding="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="{Binding IsEditing, Converter={StaticResource BoolVisConv}, ConverterParameter='Mode Edit / Opname', FallbackValue='Input Data Bahan'}" 
+                                           FontFamily="{StaticResource AppFontBold}" FontSize="18" Foreground="{ThemeResource AccentBrush}"/>
+                                <TextBlock Text="Detail harga &amp; stok gudang." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
+                            </StackPanel>
+                            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Command="{Binding ResetInputCommand}" Background="Transparent" Padding="8" ToolTipService.ToolTip="Reset Form">
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf064;" FontSize="16" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                            </Button>
+                        </Grid>
+
+                        <TextBox Header="Nama Bahan" PlaceholderText="Contoh: Tepung Segitiga" Text="{Binding InputName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Header="Harga Beli (Rp)" PlaceholderText="0" Text="{Binding InputPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Grid.Column="1" Header="Qty Kemasan" PlaceholderText="1000" Text="{Binding InputQty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" Header="Satuan" ItemsSource="{Binding UnitOptions}" SelectedItem="{Binding InputUnit, Mode=TwoWay}" HorizontalAlignment="Stretch" CornerRadius="6" FontFamily="{StaticResource AppFontMedium}"/>
+                            <TextBox Grid.Column="1" Header="Yield %" Text="{Binding InputYield, Mode=TwoWay}" ToolTipService.ToolTip="Persentase berat bersih"/>
+                        </Grid>
+
+                        <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="8" Padding="16" Margin="0,8,0,0">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeb55;" FontSize="16" Foreground="{ThemeResource AccentBrush}"/>
+                                    <TextBlock Text="MANAJEMEN STOK (GUDANG)" FontFamily="{StaticResource AppFontBold}" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
+                                </StackPanel>
+
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Header="Stok Fisik (Opname)" Text="{Binding InputStock, Mode=TwoWay}" 
+                                             PlaceholderText="0" ToolTipService.ToolTip="Masukkan jumlah real saat ini untuk update stok"/>
+                                    <TextBox Grid.Column="1" Header="Min. Alert" Text="{Binding InputMinStock, Mode=TwoWay}" 
+                                             PlaceholderText="0" ToolTipService.ToolTip="Batas minimal untuk peringatan belanja"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="ESTIMASI COST DASAR" FontSize="11" Opacity="0.6" FontFamily="{StaticResource AppFontBold}" CharacterSpacing="50" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding CalculatedCostPerUnit}" FontSize="20" FontFamily="{StaticResource AppFontBlack}" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Button Command="{Binding SaveIngredientCommand}" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Stretch" Height="44">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf0b1;" FontSize="18"/>
+                                <TextBlock Text="Simpan Data &amp; Stok" FontFamily="{StaticResource AppFontBold}" FontSize="14"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Row="1" Style="{StaticResource IngredientCardStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="6" Padding="10,6">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="{Binding Ingredients.Count}" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
+                                        <TextBlock Text="Items Terdaftar" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource AccentBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="6" Padding="10,6">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="{Binding StockHealthLabel}" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                        <TextBlock Text="Health" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <Button Command="{Binding RefreshInsightsCommand}" Style="{StaticResource ModernButtonStyle}" Background="{ThemeResource CardBackgroundBrush}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf3d6;" FontSize="14"/>
+                                        <TextBlock Text="Refresh" FontFamily="{StaticResource AppFontMedium}" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ClearFiltersCommand}" Style="{StaticResource ModernButtonStyle}" Background="{ThemeResource CardBackgroundBrush}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xf1c0;" FontSize="14"/>
+                                        <TextBlock Text="Reset Filter" FontFamily="{StaticResource AppFontMedium}" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Row="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,16" ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox Grid.Column="0" Header="Kategori" Width="180" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}" CornerRadius="6"/>
+                                <ComboBox Grid.Column="1" Header="Status Stok" Width="180" ItemsSource="{Binding StockStatusOptions}" SelectedItem="{Binding SelectedStockStatus, Mode=TwoWay}" CornerRadius="6"/>
+                                <ComboBox Grid.Column="2" Header="Unit" Width="140" ItemsSource="{Binding UnitFilterOptions}" SelectedItem="{Binding SelectedUnitFilter, Mode=TwoWay}" CornerRadius="6"/>
+                                <ComboBox Grid.Column="3" Header="Sort" Width="200" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort, Mode=TwoWay}" CornerRadius="6"/>
+                            </Grid>
+
+                            <ui:DataGrid Grid.Row="1" ItemsSource="{Binding Ingredients}" 
+                                         AutoGenerateColumns="False"
+                                         GridLinesVisibility="Horizontal"
+                                         VerticalScrollBarVisibility="Auto"
+                                         IsReadOnly="True"
+                                         CanUserSortColumns="False"
+                                         SelectionMode="Single"
+                                         SelectedItem="{Binding SelectedIngredient, Mode=TwoWay}"
+                                         HeadersVisibility="Column"
+                                         BorderThickness="0"
+                                         RowHeight="48"
+                                         FontFamily="{StaticResource AppFontMedium}"
+                                         RowBackground="Transparent"
+                                         AlternatingRowBackground="Transparent">
+
+                            <ui:DataGrid.RowStyle>
+                                <Style TargetType="ui:DataGridRow">
+                                    <Setter Property="ContextFlyout">
+                                        <Setter.Value>
+                                            <MenuFlyout>
+                                                <MenuFlyoutItem Text="Edit / Stock Opname" Icon="Edit">
+                                                    <MenuFlyoutItem.Command>
+                                                        <Binding Source="{StaticResource ViewModelProxy}" Path="Data.PrepareEditCommand"/>
+                                                    </MenuFlyoutItem.Command>
+                                                    <MenuFlyoutItem.CommandParameter>
+                                                        <Binding Path="."/>
+                                                    </MenuFlyoutItem.CommandParameter>
+                                                </MenuFlyoutItem>
+
+                                                <MenuFlyoutSeparator/>
+
+                                                <MenuFlyoutItem Text="Hapus Bahan" Icon="Delete" Foreground="Red">
+                                                    <MenuFlyoutItem.Command>
+                                                        <Binding Source="{StaticResource ViewModelProxy}" Path="Data.DeleteIngredientCommand"/>
+                                                    </MenuFlyoutItem.Command>
+                                                    <MenuFlyoutItem.CommandParameter>
+                                                        <Binding Path="."/>
+                                                    </MenuFlyoutItem.CommandParameter>
+                                                </MenuFlyoutItem>
+                                            </MenuFlyout>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ui:DataGrid.RowStyle>
+
+                                <ui:DataGrid.Columns>
+                                <ui:DataGridTemplateColumn Header="Nama Bahan" Width="2*">
+                                    <ui:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontFamily="{StaticResource AppFontBold}" FontSize="14" Margin="12,0" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                        </DataTemplate>
+                                    </ui:DataGridTemplateColumn.CellTemplate>
+                                </ui:DataGridTemplateColumn>
+
+                                <ui:DataGridTemplateColumn Header="Kategori" Width="1.2*">
+                                    <ui:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Category}" VerticalAlignment="Center" Margin="12,0" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                        </DataTemplate>
+                                    </ui:DataGridTemplateColumn.CellTemplate>
+                                </ui:DataGridTemplateColumn>
+
+                                <ui:DataGridTemplateColumn Header="Harga Beli" Width="1.2*">
+                                    <ui:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="12,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding PricePerPackage, Converter={StaticResource MoneyConv}}" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                                <StackPanel Orientation="Horizontal" Opacity="0.6" Spacing="4">
+                                                    <TextBlock Text="per" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                                    <TextBlock Text="{Binding QuantityPerPackage}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                                    <TextBlock Text="{Binding Unit}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ui:DataGridTemplateColumn.CellTemplate>
+                                </ui:DataGridTemplateColumn>
+
+                                <ui:DataGridTemplateColumn Header="Cost/Unit" Width="1.1*">
+                                    <ui:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding RealCostPerUnit, Converter={StaticResource MoneyConv}}" Margin="12,0" VerticalAlignment="Center" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                        </DataTemplate>
+                                    </ui:DataGridTemplateColumn.CellTemplate>
+                                </ui:DataGridTemplateColumn>
+
+                                <ui:DataGridTemplateColumn Header="Stok Gudang" Width="1.2*">
+                                    <ui:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left" Margin="12,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeb55;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
+                                                    <TextBlock Text="{Binding CurrentStock}" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                                    <TextBlock Text="{Binding Unit}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ui:DataGridTemplateColumn.CellTemplate>
+                                </ui:DataGridTemplateColumn>
+
+                                <ui:DataGridTemplateColumn Header="Yield" Width="*">
+                                    <ui:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="2" Margin="12,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding YieldPercent}" FontFamily="{StaticResource AppFontBold}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                                <TextBlock Text="%" FontFamily="{StaticResource AppFontBold}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ui:DataGridTemplateColumn.CellTemplate>
+                                </ui:DataGridTemplateColumn>
+
+                                <ui:DataGridTemplateColumn Header="Aksi" Width="Auto">
+                                    <ui:DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="4" Margin="8">
+                                                <Button Command="{Binding Data.PrepareEditCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}"
+                                                        Padding="8" Background="Transparent" ToolTipService.ToolTip="Edit / Stock Opname">
+                                                    <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xec86;" FontSize="16" Foreground="{ThemeResource AccentBrush}"/>
+                                                </Button>
+                                                <Button Command="{Binding Data.DeleteIngredientCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}"
+                                                        Padding="8" Background="Transparent" ToolTipService.ToolTip="Hapus">
+                                                    <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xec28;" FontSize="16" Foreground="{ThemeResource DangerBrush}"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ui:DataGridTemplateColumn.CellTemplate>
+                                </ui:DataGridTemplateColumn>
+                                </ui:DataGrid.Columns>
+                            </ui:DataGrid>
+                        </Grid>
+                    </Grid>
+                </Grid>
+
+                <Grid Grid.Row="2" Style="{StaticResource IngredientCardStyle}" VerticalAlignment="Top">
+                    <StackPanel Spacing="16">
+                        <StackPanel>
+                            <TextBlock Text="Insight &amp; Health Monitor" FontFamily="{StaticResource AppFontBold}" FontSize="18"/>
+                            <TextBlock Text="{Binding LastSyncLabel}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                        </StackPanel>
+
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="10" Padding="12">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="TOTAL ITEMS" FontSize="10" Opacity="0.6" FontFamily="{StaticResource AppFontBold}"/>
+                                    <TextBlock Text="{Binding TotalIngredientsLabel}" FontFamily="{StaticResource AppFontBlack}" FontSize="20"/>
                                 </StackPanel>
                             </Border>
-                        </StackPanel>
-                    </Grid>
+                            <Border Grid.Column="1" Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="10" Padding="12">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="INVENTORY VALUE" FontSize="10" Opacity="0.6" FontFamily="{StaticResource AppFontBold}"/>
+                                    <TextBlock Text="{Binding InventoryValueLabel}" FontFamily="{StaticResource AppFontBold}" FontSize="16"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
 
-                    <ui:DataGrid Grid.Row="1" ItemsSource="{Binding Ingredients}" 
-                                 AutoGenerateColumns="False"
-                                 GridLinesVisibility="Horizontal"
-                                 VerticalScrollBarVisibility="Auto"
-                                 IsReadOnly="True"
-                                 CanUserSortColumns="True"
-                                 SelectionMode="Single"
-                                 HeadersVisibility="Column"
-                                 BorderThickness="0"
-                                 RowHeight="48"
-                                 FontFamily="{StaticResource AppFontMedium}"
-                                 RowBackground="Transparent"
-                                 AlternatingRowBackground="Transparent">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="10" Padding="12">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="AVG COST/UNIT" FontSize="10" Opacity="0.6" FontFamily="{StaticResource AppFontBold}"/>
+                                    <TextBlock Text="{Binding AverageCostLabel}" FontFamily="{StaticResource AppFontBold}" FontSize="16"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="10" Padding="12">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="VALUE AT RISK" FontSize="10" Opacity="0.6" FontFamily="{StaticResource AppFontBold}"/>
+                                    <TextBlock Text="{Binding ValueAtRiskLabel}" FontFamily="{StaticResource AppFontBold}" FontSize="16" Foreground="{ThemeResource DangerBrush}"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
 
-                        <ui:DataGrid.RowStyle>
-                            <Style TargetType="ui:DataGridRow">
-                                <Setter Property="ContextFlyout">
-                                    <Setter.Value>
-                                        <MenuFlyout>
-                                            <MenuFlyoutItem Text="Edit / Stock Opname" Icon="Edit">
-                                                <MenuFlyoutItem.Command>
-                                                    <Binding Source="{StaticResource ViewModelProxy}" Path="Data.PrepareEditCommand"/>
-                                                </MenuFlyoutItem.Command>
-                                                <MenuFlyoutItem.CommandParameter>
-                                                    <Binding Path="."/>
-                                                </MenuFlyoutItem.CommandParameter>
-                                            </MenuFlyoutItem>
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="10" Padding="12">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="LOW STOCK" FontSize="10" Opacity="0.6" FontFamily="{StaticResource AppFontBold}"/>
+                                    <TextBlock Text="{Binding LowStockLabel}" FontFamily="{StaticResource AppFontBold}" FontSize="16"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="10" Padding="12">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="OUT OF STOCK" FontSize="10" Opacity="0.6" FontFamily="{StaticResource AppFontBold}"/>
+                                    <TextBlock Text="{Binding OutOfStockLabel}" FontFamily="{StaticResource AppFontBold}" FontSize="16"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
 
-                                            <MenuFlyoutSeparator/>
+                        <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="12" Padding="14">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Selected Ingredient" FontFamily="{StaticResource AppFontBold}" FontSize="14"/>
+                                <TextBlock Text="{Binding SelectedIngredient.Name, TargetNullValue='Pilih bahan dari tabel'}" FontFamily="{StaticResource AppFontMedium}"/>
+                                <TextBlock Text="{Binding SelectedIngredientCostLabel}" FontFamily="{StaticResource AppFontBold}" />
+                                <TextBlock Text="{Binding SelectedIngredientStockValueLabel}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding SelectedIngredientStatusLabel}" FontFamily="{StaticResource AppFontBold}" />
+                                <TextBlock Text="{Binding SelectedIngredientUsageLabel}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Border>
 
-                                            <MenuFlyoutItem Text="Hapus Bahan" Icon="Delete" Foreground="Red">
-                                                <MenuFlyoutItem.Command>
-                                                    <Binding Source="{StaticResource ViewModelProxy}" Path="Data.DeleteIngredientCommand"/>
-                                                </MenuFlyoutItem.Command>
-                                                <MenuFlyoutItem.CommandParameter>
-                                                    <Binding Path="."/>
-                                                </MenuFlyoutItem.CommandParameter>
-                                            </MenuFlyoutItem>
-                                        </MenuFlyout>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ui:DataGrid.RowStyle>
+                        <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="12" Padding="14">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Quick Stock Adjustment" FontFamily="{StaticResource AppFontBold}" FontSize="14"/>
+                                <TextBox Header="Qty" Text="{Binding InputAdjustment, Mode=TwoWay}" PlaceholderText="0"/>
+                                <TextBox Header="Catatan" Text="{Binding InputAdjustmentNote, Mode=TwoWay}" PlaceholderText="Misal: koreksi gudang"/>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Command="{Binding ApplyStockAdjustmentCommand}" CommandParameter="IN" Style="{StaticResource PrimaryButtonStyle}">
+                                        <TextBlock Text="Tambah"/>
+                                    </Button>
+                                    <Button Grid.Column="1" Command="{Binding ApplyStockAdjustmentCommand}" CommandParameter="OUT" Style="{StaticResource ModernButtonStyle}" Background="{ThemeResource CardBackgroundBrush}">
+                                        <TextBlock Text="Kurangi"/>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
-                        <ui:DataGrid.Columns>
-                            <ui:DataGridTemplateColumn Header="Nama Bahan" Width="2*">
-                                <ui:DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontFamily="{StaticResource AppFontBold}" FontSize="14" Margin="12,0" Foreground="{ThemeResource TextPrimaryBrush}"/>
-                                    </DataTemplate>
-                                </ui:DataGridTemplateColumn.CellTemplate>
-                            </ui:DataGridTemplateColumn>
-
-                            <ui:DataGridTemplateColumn Header="Harga Beli" Width="1.2*">
-                                <ui:DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Margin="12,0" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding PricePerPackage, Converter={StaticResource MoneyConv}}" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextPrimaryBrush}"/>
-                                            <StackPanel Orientation="Horizontal" Opacity="0.6" Spacing="4">
-                                                <TextBlock Text="per" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                                <TextBlock Text="{Binding QuantityPerPackage}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                                <TextBlock Text="{Binding Unit}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ui:DataGridTemplateColumn.CellTemplate>
-                            </ui:DataGridTemplateColumn>
-
-                            <ui:DataGridTemplateColumn Header="Stok Gudang" Width="1.2*">
-                                <ui:DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left" Margin="12,0">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xeb55;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
-                                                <TextBlock Text="{Binding CurrentStock}" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
-                                                <TextBlock Text="{Binding Unit}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ui:DataGridTemplateColumn.CellTemplate>
-                            </ui:DataGridTemplateColumn>
-
-                            <ui:DataGridTemplateColumn Header="Yield" Width="*">
-                                <ui:DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="2" Margin="12,0" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding YieldPercent}" FontFamily="{StaticResource AppFontBold}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                            <TextBlock Text="%" FontFamily="{StaticResource AppFontBold}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ui:DataGridTemplateColumn.CellTemplate>
-                            </ui:DataGridTemplateColumn>
-
-                            <ui:DataGridTemplateColumn Header="Aksi" Width="Auto">
-                                <ui:DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="8">
-                                            <Button Command="{Binding Data.PrepareEditCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}"
-                                                    Padding="8" Background="Transparent" ToolTipService.ToolTip="Edit / Stock Opname">
-                                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xec86;" FontSize="16" Foreground="{ThemeResource AccentBrush}"/>
-                                            </Button>
-                                            <Button Command="{Binding Data.DeleteIngredientCommand, Source={StaticResource ViewModelProxy}}" CommandParameter="{Binding}"
-                                                    Padding="8" Background="Transparent" ToolTipService.ToolTip="Hapus">
-                                                <FontIcon FontFamily="{StaticResource RemixIcon}" Glyph="&#xec28;" FontSize="16" Foreground="{ThemeResource DangerBrush}"/>
-                                            </Button>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ui:DataGridTemplateColumn.CellTemplate>
-                            </ui:DataGridTemplateColumn>
-                        </ui:DataGrid.Columns>
-                    </ui:DataGrid>
+                        <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="12" Padding="14">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Recent Stock Movements" FontFamily="{StaticResource AppFontBold}" FontSize="14"/>
+                                <ItemsControl ItemsSource="{Binding RecentTransactions}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Description}" FontFamily="{StaticResource AppFontMedium}" FontSize="12"/>
+                                                    <TextBlock Text="{Binding Date, Converter={StaticResource DateConv}, ConverterParameter='dd MMM HH:mm'}" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="{Binding Quantity}" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </Grid>
             </Grid>
         </Grid>
-    </Grid>
+    </ScrollViewer>
 </Page>
