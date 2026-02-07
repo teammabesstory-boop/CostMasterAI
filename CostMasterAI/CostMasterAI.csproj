@@ -68,8 +68,8 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1-RTM" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.0-experimental4" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.2" />
-    <PackageReference Include="WinUICommunity.Components" Version="7.1.0" />
-    <PackageReference Include="WinUICommunity.LandingPages" Version="7.1.0" />
+    <PackageReference Include="WinUICommunity.Components" Version="6.9.0" />
+    <PackageReference Include="WinUICommunity.LandingPages" Version="6.9.0" />
     <PackageReference Include="WinUIEx" Version="2.9.0" />
   </ItemGroup>
   <ItemGroup>
