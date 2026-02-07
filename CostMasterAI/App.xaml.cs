@@ -13,9 +13,9 @@ namespace CostMasterAI
     public partial class App : Application
     {
         // Properti Static agar MainWindow bisa diakses global (Penting untuk FilePicker/Dialog)
-        public static Window MainWindow { get; private set; }
+        public static Window? MainWindow { get; private set; }
 
-        private Window m_window;
+        private Window? m_window;
 
         // Container Dependency Injection
         public IServiceProvider Services { get; }
