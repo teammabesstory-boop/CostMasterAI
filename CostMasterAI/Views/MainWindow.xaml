@@ -85,7 +85,7 @@
                         Background="Transparent">
                 <CommandBar.PrimaryCommands>
                     <AppBarButton Icon="Refresh" Label="Sync" Click="RefreshButton_Click"/>
-                    <AppBarButton Icon="WeatherMoon" Label="Theme" Click="ToggleThemeButton_Click"/>
+                    <AppBarButton Icon="Light" Label="Theme" Click="ToggleThemeButton_Click"/>
                     <AppBarButton Icon="Help" Label="Support" Click="HelpButton_Click"/>
                 </CommandBar.PrimaryCommands>
                 <CommandBar.SecondaryCommands>
