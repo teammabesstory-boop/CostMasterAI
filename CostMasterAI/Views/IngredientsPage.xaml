@@ -13,6 +13,7 @@
         <helpers:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
 
         <helpers:BoolToVisibilityConverter x:Key="BoolVisConv"/>
+        <helpers:DateConverter x:Key="DateConv"/>
         <helpers:CurrencyConverter x:Key="MoneyConv"/>
 
         <FontFamily x:Key="RemixIcon">/Assets/remixicon.ttf#remixicon</FontFamily>
@@ -472,7 +473,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding Description}" FontFamily="{StaticResource AppFontMedium}" FontSize="12"/>
-                                                    <TextBlock Text="{Binding Date, StringFormat='{}{0:dd MMM HH:mm}'}" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                                    <TextBlock Text="{Binding Date, Converter={StaticResource DateConv}, ConverterParameter='dd MMM HH:mm'}" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}"/>
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="1" Text="{Binding Quantity}" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
                                             </Grid>
