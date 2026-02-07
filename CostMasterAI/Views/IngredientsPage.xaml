@@ -220,17 +220,17 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
-                            <Grid Grid.Row="0" Margin="0,0,0,16">
+                            <Grid Grid.Row="0" Margin="0,0,0,16" ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <ComboBox Grid.Column="0" Header="Kategori" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}" CornerRadius="6"/>
-                                <ComboBox Grid.Column="1" Header="Status Stok" ItemsSource="{Binding StockStatusOptions}" SelectedItem="{Binding SelectedStockStatus, Mode=TwoWay}" CornerRadius="6" Margin="8,0,0,0"/>
-                                <ComboBox Grid.Column="2" Header="Unit" ItemsSource="{Binding UnitFilterOptions}" SelectedItem="{Binding SelectedUnitFilter, Mode=TwoWay}" CornerRadius="6" Margin="8,0,0,0"/>
-                                <ComboBox Grid.Column="3" Header="Sort" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort, Mode=TwoWay}" CornerRadius="6" Margin="8,0,0,0"/>
+                                <ComboBox Grid.Column="0" Header="Kategori" Width="180" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}" CornerRadius="6"/>
+                                <ComboBox Grid.Column="1" Header="Status Stok" Width="180" ItemsSource="{Binding StockStatusOptions}" SelectedItem="{Binding SelectedStockStatus, Mode=TwoWay}" CornerRadius="6"/>
+                                <ComboBox Grid.Column="2" Header="Unit" Width="140" ItemsSource="{Binding UnitFilterOptions}" SelectedItem="{Binding SelectedUnitFilter, Mode=TwoWay}" CornerRadius="6"/>
+                                <ComboBox Grid.Column="3" Header="Sort" Width="200" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort, Mode=TwoWay}" CornerRadius="6"/>
                             </Grid>
 
                             <ui:DataGrid Grid.Row="1" ItemsSource="{Binding Ingredients}" 
