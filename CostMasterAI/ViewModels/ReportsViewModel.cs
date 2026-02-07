@@ -51,7 +51,15 @@ namespace CostMasterAI.ViewModels
             // Integrasi: Dengarkan jika ada transaksi baru dari halaman lain (misal: Shopping List)
             WeakReferenceMessenger.Default.Register<TransactionsChangedMessage>(this, (r, m) =>
             {
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDataAsync());
+                var dispatcher = App.MainWindow?.DispatcherQueue;
+                if (dispatcher != null)
+                {
+                    dispatcher.TryEnqueue(async () => await LoadDataAsync());
+                }
+                else
+                {
+                    _ = LoadDataAsync();
+                }
             });
 
             _ = LoadDataAsync();

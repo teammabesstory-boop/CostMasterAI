@@ -165,7 +165,6 @@
                                Margin="0,8,0,0"/>
 
                     <wuc:MainLandingPage HeaderImageHeight="220"
-                                         UseFullScreenHeaderImage="False"
                                          Margin="0,0,0,12">
                         <wuc:MainLandingPage.HeaderContent>
                             <Grid>
