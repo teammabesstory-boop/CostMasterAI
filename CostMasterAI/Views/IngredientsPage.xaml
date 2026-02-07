@@ -90,14 +90,14 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" ColumnSpacing="28">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="380"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="340"/>
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Row="1" RowSpacing="28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            <Grid Grid.Column="0" Style="{StaticResource IngredientCardStyle}" VerticalAlignment="Top">
+            <Grid Grid.Row="0" Style="{StaticResource IngredientCardStyle}" VerticalAlignment="Top">
                 <StackPanel Spacing="20">
                     <Grid BorderThickness="0,0,0,1" BorderBrush="{ThemeResource CardBorderBrush}" Padding="0,0,0,16">
                         <StackPanel>
@@ -170,7 +170,7 @@
                 </StackPanel>
             </Grid>
 
-            <Grid Grid.Column="1" Style="{StaticResource IngredientCardStyle}">
+            <Grid Grid.Row="1" Style="{StaticResource IngredientCardStyle}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -364,7 +364,7 @@
                 </Grid>
             </Grid>
 
-            <Grid Grid.Column="2" Style="{StaticResource IngredientCardStyle}" VerticalAlignment="Top">
+            <Grid Grid.Row="2" Style="{StaticResource IngredientCardStyle}" VerticalAlignment="Top">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="16">
                         <StackPanel>
