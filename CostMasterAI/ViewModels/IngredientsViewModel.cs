@@ -116,7 +116,15 @@ namespace CostMasterAI.ViewModels
             // Dengarkan update stok dari halaman lain (Shopping List / Reports)
             WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
             {
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDataAsync());
+                var dispatcher = App.MainWindow?.DispatcherQueue;
+                if (dispatcher != null)
+                {
+                    dispatcher.TryEnqueue(async () => await LoadDataAsync());
+                }
+                else
+                {
+                    _ = LoadDataAsync();
+                }
             });
 
             _ = LoadDataAsync();

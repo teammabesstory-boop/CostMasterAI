@@ -86,18 +86,28 @@ namespace CostMasterAI.ViewModels
         {
             _dbContext = dbContext;
 
+            void EnqueueReload()
+            {
+                var dispatcher = App.MainWindow?.DispatcherQueue;
+                if (dispatcher != null)
+                {
+                    dispatcher.TryEnqueue(async () => await LoadDashboardData());
+                }
+                else
+                {
+                    _ = LoadDashboardData();
+                }
+            }
+
             // Inisialisasi Chart Kosong agar tidak null di XAML
             CostStructureSeries = Array.Empty<ISeries>();
 
             // --- INTEGRASI REAL-TIME ---
-            WeakReferenceMessenger.Default.Register<TransactionsChangedMessage>(this, (r, m) =>
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData()));
+            WeakReferenceMessenger.Default.Register<TransactionsChangedMessage>(this, (r, m) => EnqueueReload());
 
-            WeakReferenceMessenger.Default.Register<RecipesChangedMessage>(this, (r, m) =>
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData()));
+            WeakReferenceMessenger.Default.Register<RecipesChangedMessage>(this, (r, m) => EnqueueReload());
 
-            WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDashboardData()));
+            WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) => EnqueueReload());
 
             _ = LoadDashboardData();
         }
