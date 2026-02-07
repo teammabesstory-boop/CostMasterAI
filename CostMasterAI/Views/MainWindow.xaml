@@ -160,8 +160,8 @@
                                Message="Pantau biaya dan stok secara real-time."
                                IsOpen="True"
                                Severity="Success"
-                               ShowCloseButton="True"
-                               ShowDateTime="True"
+                               ShowCloseButton="Visible"
+                               ShowDateTime="Visible"
                                Margin="0,8,0,0"/>
 
                     <wuc:MainLandingPage HeaderImageHeight="220"
@@ -184,7 +184,7 @@
                                         <Button Content="Buka Dashboard" Style="{StaticResource PrimaryButtonStyle}" Tag="dashboard" Click="QuickAction_Click"/>
                                         <wuc:FlyoutMenuButton Content="Quick Ops" Tag="quickops" Click="QuickOpsButton_Click">
                                             <wuc:FlyoutMenuButton.Icon>
-                                                <SymbolIcon Symbol="Flash"/>
+                                                <SymbolIcon Symbol="Play"/>
                                             </wuc:FlyoutMenuButton.Icon>
                                             <wuc:FlyoutMenuButton.Flyout>
                                                 <MenuFlyout>

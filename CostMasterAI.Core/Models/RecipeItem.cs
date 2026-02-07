@@ -10,11 +10,11 @@ namespace CostMasterAI.Core.Models
 
         public int RecipeId { get; set; }
         [ForeignKey("RecipeId")]
-        public Recipe Recipe { get; set; }
+        public Recipe Recipe { get; set; } = null!;
 
         public int IngredientId { get; set; }
         [ForeignKey("IngredientId")]
-        public Ingredient Ingredient { get; set; }
+        public Ingredient Ingredient { get; set; } = null!;
 
         public double UsageQty { get; set; }
         public string UsageUnit { get; set; } = "Gram";
