@@ -184,7 +184,7 @@
                                         <Button Content="Buka Dashboard" Style="{StaticResource PrimaryButtonStyle}" Tag="dashboard" Click="QuickAction_Click"/>
                                         <wuc:FlyoutMenuButton Content="Quick Ops" Tag="quickops" Click="QuickOpsButton_Click">
                                             <wuc:FlyoutMenuButton.Icon>
-                                                <SymbolIcon Symbol="LightningBolt"/>
+                                                <SymbolIcon Symbol="Flash"/>
                                             </wuc:FlyoutMenuButton.Icon>
                                             <wuc:FlyoutMenuButton.Flyout>
                                                 <MenuFlyout>
@@ -217,35 +217,29 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <isynergy:BladeView Grid.Column="0">
-                                    <Grid Style="{StaticResource ModernCardStyle}" Padding="16">
-                                        <StackPanel Spacing="8">
-                                            <TextBlock Text="Biaya Hari Ini" Style="{StaticResource SectionTitleStyle}"/>
-                                            <TextBlock Text="Rp 12.450.000" FontSize="20" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
-                                            <TextBlock Text="+4.2% dibanding kemarin" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </isynergy:BladeView>
+                                <Grid Grid.Column="0" Style="{StaticResource ModernCardStyle}" Padding="16">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Biaya Hari Ini" Style="{StaticResource SectionTitleStyle}"/>
+                                        <TextBlock Text="Rp 12.450.000" FontSize="20" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
+                                        <TextBlock Text="+4.2% dibanding kemarin" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Grid>
 
-                                <isynergy:BladeView Grid.Column="1">
-                                    <Grid Style="{StaticResource ModernCardStyle}" Padding="16">
-                                        <StackPanel Spacing="8">
-                                            <TextBlock Text="Prediksi Stok Kritis" Style="{StaticResource SectionTitleStyle}"/>
-                                            <TextBlock Text="3 item menuju reorder" FontSize="18" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource DangerBrush}"/>
-                                            <TextBlock Text="Saran: lakukan pembelian hari ini." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </isynergy:BladeView>
+                                <Grid Grid.Column="1" Style="{StaticResource ModernCardStyle}" Padding="16">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Prediksi Stok Kritis" Style="{StaticResource SectionTitleStyle}"/>
+                                        <TextBlock Text="3 item menuju reorder" FontSize="18" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource DangerBrush}"/>
+                                        <TextBlock Text="Saran: lakukan pembelian hari ini." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Grid>
 
-                                <isynergy:BladeView Grid.Column="2">
-                                    <Grid Style="{StaticResource ModernCardStyle}" Padding="16">
-                                        <StackPanel Spacing="8">
-                                            <TextBlock Text="AI Insights" Style="{StaticResource SectionTitleStyle}"/>
-                                            <TextBlock Text="8 rekomendasi aktif" FontSize="18" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource SuccessBrush}"/>
-                                            <TextBlock Text="Optimasi 5 menu populer." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </isynergy:BladeView>
+                                <Grid Grid.Column="2" Style="{StaticResource ModernCardStyle}" Padding="16">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="AI Insights" Style="{StaticResource SectionTitleStyle}"/>
+                                        <TextBlock Text="8 rekomendasi aktif" FontSize="18" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource SuccessBrush}"/>
+                                        <TextBlock Text="Optimasi 5 menu populer." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Grid>
                             </Grid>
                         </wuc:MainLandingPage.FooterContent>
                     </wuc:MainLandingPage>
