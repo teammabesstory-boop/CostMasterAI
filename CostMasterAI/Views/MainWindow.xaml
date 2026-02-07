@@ -4,7 +4,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ic="using:FluentIcons.WinUI"
+    xmlns:isynergy="using:ISynergy.Framework.UI.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:wuc="using:WinUICommunity"
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource AppBackgroundBrush}">
@@ -26,6 +28,18 @@
                 <Setter Property="FontSize" Value="24"/>
                 <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
             </Style>
+
+            <Style x:Key="HeroTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource AppFontBold}"/>
+                <Setter Property="FontSize" Value="28"/>
+                <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
+            </Style>
+
+            <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource AppFontBold}"/>
+                <Setter Property="FontSize" Value="18"/>
+                <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
+            </Style>
         </Grid.Resources>
 
         <Grid.RowDefinitions>
@@ -33,20 +47,23 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Grid x:Name="AppTitleBar" Height="48" Grid.Row="0" Canvas.ZIndex="1">
+        <Grid x:Name="AppTitleBar" Height="56" Grid.Row="0" Canvas.ZIndex="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <Border Background="{ThemeResource CardBackgroundBrush}" CornerRadius="12" Padding="8,4">
+            <Border Background="{ThemeResource CardBackgroundBrush}" CornerRadius="14" Padding="8,6">
                 <Border.Shadow>
                     <ThemeShadow />
                 </Border.Shadow>
                 <StackPanel Orientation="Horizontal" Spacing="12" Padding="16,0,12,0" VerticalAlignment="Center">
-                    <Image Source="/Assets/Square44x44Logo.targetsize-24_altform-unplated.png" Width="24" Height="24"/>
-                    <TextBlock Text="CostMaster AI" FontSize="14" FontFamily="{StaticResource AppFontBold}" Opacity="0.9" VerticalAlignment="Center" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                    <Image Source="/Assets/Square44x44Logo.targetsize-24_altform-unplated.png" Width="26" Height="26"/>
+                    <StackPanel>
+                        <TextBlock Text="CostMaster AI" FontSize="14" FontFamily="{StaticResource AppFontBold}" Opacity="0.9" Foreground="{ThemeResource TextPrimaryBrush}"/>
+                        <TextBlock Text="Ops Intelligence Hub" FontSize="11" FontFamily="{StaticResource AppFontMedium}" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                    </StackPanel>
 
                     <Border Background="{ThemeResource SubtleBackgroundBrush}" CornerRadius="6" Padding="8,4" Margin="8,0,0,0">
                         <TextBlock Text="BETA" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}"/>
@@ -54,10 +71,28 @@
                 </StackPanel>
             </Border>
 
-            <Button Grid.Column="2" Click="ToggleThemeButton_Click" Background="Transparent" BorderThickness="0" Margin="0,0,140,0">
-                <ic:SymbolIcon Symbol="WeatherMoon" FontSize="20" Foreground="{ThemeResource TextPrimaryBrush}"/>
-                <ToolTipService.ToolTip>Switch Theme</ToolTipService.ToolTip>
-            </Button>
+            <AutoSuggestBox Grid.Column="1"
+                            x:Name="GlobalSearchBox"
+                            QuerySubmitted="GlobalSearchBox_QuerySubmitted"
+                            PlaceholderText="Cari resep, bahan, atau laporan..."
+                            FontFamily="{StaticResource AppFontMedium}"
+                            Margin="16,0"
+                            VerticalAlignment="Center"
+                            Background="{ThemeResource SubtleBackgroundBrush}"/>
+
+            <isynergy:BaseMenu Grid.Column="2"
+                               DefaultLabelPosition="Collapsed"
+                               Background="Transparent">
+                <CommandBar.PrimaryCommands>
+                    <AppBarButton Icon="Refresh" Label="Sync" Click="RefreshButton_Click"/>
+                    <AppBarButton Icon="ClearNight" Label="Theme" Click="ToggleThemeButton_Click"/>
+                    <AppBarButton Icon="Help" Label="Support" Click="HelpButton_Click"/>
+                </CommandBar.PrimaryCommands>
+                <CommandBar.SecondaryCommands>
+                    <AppBarButton Icon="ContactInfo" Label="Profile" Click="ProfileButton_Click"/>
+                    <AppBarButton Icon="Setting" Label="Settings" Click="SettingsButton_Click"/>
+                </CommandBar.SecondaryCommands>
+            </isynergy:BaseMenu>
         </Grid>
 
         <NavigationView x:Name="NavView" 
@@ -66,7 +101,9 @@
                         IsSettingsVisible="True"
                         SelectionChanged="NavView_SelectionChanged"
                         Loaded="NavView_Loaded"
-                        OpenPaneLength="280">
+                        OpenPaneLength="300"
+                        IsBackButtonVisible="Collapsed"
+                        CompactPaneLength="56">
 
             <NavigationView.MenuItems>
                 <NavigationViewItem Tag="dashboard" Content="Dashboard">
@@ -116,17 +153,190 @@
                 </NavigationViewItem>
             </NavigationView.FooterMenuItems>
 
-            <Frame x:Name="ContentFrame" Background="{ThemeResource AppBackgroundBrush}">
-                <Frame.ContentTransitions>
-                    <TransitionCollection>
-                        <NavigationThemeTransition>
-                            <NavigationThemeTransition.DefaultNavigationTransitionInfo>
-                                <DrillInNavigationTransitionInfo />
-                            </NavigationThemeTransition.DefaultNavigationTransitionInfo>
-                        </NavigationThemeTransition>
-                    </TransitionCollection>
-                </Frame.ContentTransitions>
-            </Frame>
+            <NavigationView.Header>
+                <StackPanel Spacing="12">
+                    <wuc:Growl x:Name="StatusGrowl"
+                               Title="CostMaster AI siap digunakan"
+                               Message="Pantau biaya dan stok secara real-time."
+                               IsOpen="True"
+                               Severity="Success"
+                               ShowCloseButton="True"
+                               ShowDateTime="True"
+                               Margin="0,8,0,0"/>
+
+                    <wuc:MainLandingPage HeaderImageHeight="220"
+                                         UseFullScreenHeaderImage="False"
+                                         Margin="0,0,0,12">
+                        <wuc:MainLandingPage.HeaderContent>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="Extreme Mega Overhaul Control Center" Style="{StaticResource HeroTitleStyle}"/>
+                                    <TextBlock Text="Insight biaya, forecasting, dan rekomendasi AI terintegrasi ke seluruh operasi dapur."
+                                               FontFamily="{StaticResource AppFontMedium}"
+                                               FontSize="14"
+                                               Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <Button Content="Buka Dashboard" Style="{StaticResource PrimaryButtonStyle}" Tag="dashboard" Click="QuickAction_Click"/>
+                                        <wuc:FlyoutMenuButton Content="Quick Ops" Tag="quickops" Click="QuickOpsButton_Click">
+                                            <wuc:FlyoutMenuButton.Icon>
+                                                <SymbolIcon Symbol="LightningBolt"/>
+                                            </wuc:FlyoutMenuButton.Icon>
+                                            <wuc:FlyoutMenuButton.Flyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Belanja Baru" Icon="Cart" Tag="shopping" Click="QuickAction_Click"/>
+                                                    <MenuFlyoutItem Text="Review Resep" Icon="Library" Tag="recipes" Click="QuickAction_Click"/>
+                                                    <MenuFlyoutItem Text="Laporan Harian" Icon="ReportDocument" Tag="reports" Click="QuickAction_Click"/>
+                                                </MenuFlyout>
+                                            </wuc:FlyoutMenuButton.Flyout>
+                                        </wuc:FlyoutMenuButton>
+                                        <wuc:CopyButton Content="Salin Link Laporan" Click="CopyReportLink_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Border Grid.Column="1"
+                                        Background="{ThemeResource SubtleBackgroundBrush}"
+                                        CornerRadius="16"
+                                        Padding="12">
+                                    <wuc:ImageEx Source="/Assets/Wide310x150Logo.scale-200.png"
+                                                 Stretch="Uniform"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+                        </wuc:MainLandingPage.HeaderContent>
+                        <wuc:MainLandingPage.FooterContent>
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <isynergy:BladeView Grid.Column="0">
+                                    <Grid Style="{StaticResource ModernCardStyle}" Padding="16">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="Biaya Hari Ini" Style="{StaticResource SectionTitleStyle}"/>
+                                            <TextBlock Text="Rp 12.450.000" FontSize="20" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource AccentBrush}"/>
+                                            <TextBlock Text="+4.2% dibanding kemarin" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </isynergy:BladeView>
+
+                                <isynergy:BladeView Grid.Column="1">
+                                    <Grid Style="{StaticResource ModernCardStyle}" Padding="16">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="Prediksi Stok Kritis" Style="{StaticResource SectionTitleStyle}"/>
+                                            <TextBlock Text="3 item menuju reorder" FontSize="18" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource DangerBrush}"/>
+                                            <TextBlock Text="Saran: lakukan pembelian hari ini." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </isynergy:BladeView>
+
+                                <isynergy:BladeView Grid.Column="2">
+                                    <Grid Style="{StaticResource ModernCardStyle}" Padding="16">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="AI Insights" Style="{StaticResource SectionTitleStyle}"/>
+                                            <TextBlock Text="8 rekomendasi aktif" FontSize="18" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource SuccessBrush}"/>
+                                            <TextBlock Text="Optimasi 5 menu populer." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </isynergy:BladeView>
+                            </Grid>
+                        </wuc:MainLandingPage.FooterContent>
+                    </wuc:MainLandingPage>
+                </StackPanel>
+            </NavigationView.Header>
+
+            <NavigationView.Content>
+                <Grid RowDefinitions="Auto,*" RowSpacing="16">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Text="Operational Snapshot" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="StatusSummaryText"
+                                           Text="Memantau data biaya dan penggunaan stok..."
+                                           FontFamily="{StaticResource AppFontMedium}"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="6">
+                                <TextBlock Text="Status Sistem" FontFamily="{StaticResource AppFontMedium}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                <wuc:SwitchPresenter x:Name="HealthSwitch" Value="Healthy">
+                                    <wuc:SwitchPresenter.SwitchCases>
+                                        <wuc:Case Value="Healthy" IsDefault="True">
+                                            <Border Background="{ThemeResource SuccessBrush}" CornerRadius="999" Padding="12,4">
+                                                <TextBlock Text="Healthy" Foreground="White" FontFamily="{StaticResource AppFontBold}" FontSize="12"/>
+                                            </Border>
+                                        </wuc:Case>
+                                        <wuc:Case Value="Warning">
+                                            <Border Background="{ThemeResource AccentBrush}" CornerRadius="999" Padding="12,4">
+                                                <TextBlock Text="Attention" Foreground="White" FontFamily="{StaticResource AppFontBold}" FontSize="12"/>
+                                            </Border>
+                                        </wuc:Case>
+                                        <wuc:Case Value="Critical">
+                                            <Border Background="{ThemeResource DangerBrush}" CornerRadius="999" Padding="12,4">
+                                                <TextBlock Text="Critical" Foreground="White" FontFamily="{StaticResource AppFontBold}" FontSize="12"/>
+                                            </Border>
+                                        </wuc:Case>
+                                    </wuc:SwitchPresenter.SwitchCases>
+                                </wuc:SwitchPresenter>
+                            </StackPanel>
+                        </Grid>
+
+                        <wuc:Divider Orientation="Horizontal" LineStrokeThickness="1" LineStroke="{ThemeResource CardBorderBrush}"/>
+
+                        <wuc:AutoScrollView Spacing="20" IsPlaying="True" ScrollingPixelsPreSecond="24">
+                            <wuc:AutoScrollView.Child>
+                                <StackPanel Orientation="Horizontal" Spacing="16">
+                                    <isynergy:Tile Content="Buka Bahan Baku" Tag="ingredients" Click="QuickAction_Click" Style="{StaticResource ModernButtonStyle}"/>
+                                    <isynergy:Tile Content="Analisis Resep" Tag="recipes" Click="QuickAction_Click" Style="{StaticResource ModernButtonStyle}"/>
+                                    <isynergy:Tile Content="Belanja Cerdas" Tag="shopping" Click="QuickAction_Click" Style="{StaticResource ModernButtonStyle}"/>
+                                    <isynergy:Tile Content="Laporan Profit" Tag="reports" Click="QuickAction_Click" Style="{StaticResource ModernButtonStyle}"/>
+                                    <isynergy:Tile Content="AI Assistant" Tag="ai_assistant" Click="QuickAction_Click" Style="{StaticResource ModernButtonStyle}"/>
+                                </StackPanel>
+                            </wuc:AutoScrollView.Child>
+                        </wuc:AutoScrollView>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <Grid Style="{StaticResource ModernCardStyle}" Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Sync Status" Style="{StaticResource SectionTitleStyle}"/>
+                                    <TextBlock x:Name="LastSyncText"
+                                               Text="Terakhir sinkron: -"
+                                               FontFamily="{StaticResource AppFontMedium}"
+                                               FontSize="12"
+                                               Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                    <wuc:IndeterminateProgressBar x:Name="SyncProgress" IsActive="True" Height="6"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Style="{StaticResource ModernCardStyle}" Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Kanal Notifikasi" Style="{StaticResource SectionTitleStyle}"/>
+                                    <TextBlock Text="Kirim update ke tim operasional." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                    <Button Content="Broadcast Update" Style="{StaticResource PrimaryButtonStyle}" Click="BroadcastButton_Click"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </StackPanel>
+
+                    <Frame x:Name="ContentFrame" Grid.Row="1" Background="{ThemeResource AppBackgroundBrush}">
+                        <Frame.ContentTransitions>
+                            <TransitionCollection>
+                                <NavigationThemeTransition>
+                                    <NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                                        <DrillInNavigationTransitionInfo />
+                                    </NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                                </NavigationThemeTransition>
+                            </TransitionCollection>
+                        </Frame.ContentTransitions>
+                    </Frame>
+                </Grid>
+            </NavigationView.Content>
 
         </NavigationView>
     </Grid>
