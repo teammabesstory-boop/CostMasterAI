@@ -80,9 +80,9 @@
                             VerticalAlignment="Center"
                             Background="{ThemeResource SubtleBackgroundBrush}"/>
 
-            <isynergy:BaseMenu Grid.Column="2"
-                               DefaultLabelPosition="Collapsed"
-                               Background="Transparent">
+            <CommandBar Grid.Column="2"
+                        DefaultLabelPosition="Collapsed"
+                        Background="Transparent">
                 <CommandBar.PrimaryCommands>
                     <AppBarButton Icon="Refresh" Label="Sync" Click="RefreshButton_Click"/>
                     <AppBarButton Icon="ClearNight" Label="Theme" Click="ToggleThemeButton_Click"/>
@@ -92,7 +92,7 @@
                     <AppBarButton Icon="ContactInfo" Label="Profile" Click="ProfileButton_Click"/>
                     <AppBarButton Icon="Setting" Label="Settings" Click="SettingsButton_Click"/>
                 </CommandBar.SecondaryCommands>
-            </isynergy:BaseMenu>
+            </CommandBar>
         </Grid>
 
         <NavigationView x:Name="NavView" 
