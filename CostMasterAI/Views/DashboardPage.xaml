@@ -53,7 +53,6 @@
                     <ThemeShadow />
                 </Setter.Value>
             </Setter>
-            <Setter Property="Translation" Value="0,0,24"/>
         </Style>
 
         <Style x:Key="MatrixCardStyle" TargetType="Grid">
@@ -130,13 +129,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <controls:DropShadowPanel Grid.Column="0"
-                                          ShadowOpacity="0.18"
-                                          BlurRadius="18"
-                                          OffsetX="0"
-                                          OffsetY="6"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}">
+                <Grid Grid.Column="0" Style="{StaticResource DashboardCardStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -150,16 +143,9 @@
                         <TextBlock Text="{Binding CurrentRevenue, Converter={StaticResource MoneyConv}}" Style="{StaticResource BigMetricStyle}" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     </Viewbox>
                     <TextBlock Grid.Row="2" Text="Total Uang Masuk" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
 
-                <controls:DropShadowPanel Grid.Column="1"
-                                          ShadowOpacity="0.18"
-                                          BlurRadius="18"
-                                          OffsetX="0"
-                                          OffsetY="6"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}">
+                <Grid Grid.Column="1" Style="{StaticResource DashboardCardStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -176,16 +162,9 @@
                         <TextBlock Text="Potensi:" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
                         <TextBlock Text="{Binding PotentialRevenue, Converter={StaticResource MoneyConv}}" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}"/>
                     </StackPanel>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
 
-                <controls:DropShadowPanel Grid.Column="2"
-                                          ShadowOpacity="0.2"
-                                          BlurRadius="20"
-                                          OffsetX="0"
-                                          OffsetY="8"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}" Background="{ThemeResource AccentBrush}">
+                <Grid Grid.Column="2" Style="{StaticResource DashboardCardStyle}" Background="{ThemeResource AccentBrush}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -199,16 +178,9 @@
                         <TextBlock Text="{Binding CurrentNetProfit, Converter={StaticResource MoneyConv}}" Style="{StaticResource BigMetricStyle}" Foreground="White" VerticalAlignment="Center"/>
                     </Viewbox>
                     <TextBlock Grid.Row="2" Text="Keuntungan Bersih" FontSize="12" Foreground="White" Opacity="0.6" FontFamily="{StaticResource AppFont}"/>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
 
-                <controls:DropShadowPanel Grid.Column="3"
-                                          ShadowOpacity="0.18"
-                                          BlurRadius="18"
-                                          OffsetX="0"
-                                          OffsetY="6"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}">
+                <Grid Grid.Column="3" Style="{StaticResource DashboardCardStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -222,8 +194,7 @@
                         <TextBlock Text="{Binding CashFlowBalance, Converter={StaticResource MoneyConv}}" Style="{StaticResource BigMetricStyle}" Foreground="{ThemeResource SuccessBrush}" VerticalAlignment="Center"/>
                     </Viewbox>
                     <TextBlock Grid.Row="2" Text="Saldo Kas Berjalan" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" FontFamily="{StaticResource AppFont}"/>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
             </Grid>
 
             <Grid Grid.Row="2" ColumnSpacing="24" Margin="0,0,0,32">
@@ -233,28 +204,15 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <controls:DropShadowPanel Grid.Column="0"
-                                          ShadowOpacity="0.16"
-                                          BlurRadius="16"
-                                          OffsetX="0"
-                                          OffsetY="6"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}" Height="140">
+                <Grid Grid.Column="0" Style="{StaticResource DashboardCardStyle}" Height="140">
                     <StackPanel>
                         <TextBlock Text="GROSS MARGIN AVG" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
                         <TextBlock Text="{Binding GlobalGrossProfitMargin}" FontSize="32" FontFamily="{StaticResource AppFontBlack}" Foreground="{ThemeResource TextPrimaryBrush}" Margin="0,4"/>
                         <TextBlock Text="Target: >50%" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}"/>
                     </StackPanel>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
 
-                <controls:DropShadowPanel Grid.Column="1"
-                                          ShadowOpacity="0.16"
-                                          BlurRadius="16"
-                                          OffsetX="0"
-                                          OffsetY="6"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}" Height="140">
+                <Grid Grid.Column="1" Style="{StaticResource DashboardCardStyle}" Height="140">
                     <StackPanel>
                         <TextBlock Text="INVENTORY VALUE" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
                         <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left" Height="40">
@@ -262,16 +220,9 @@
                         </Viewbox>
                         <TextBlock Text="Est. Cost Produksi" FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}"/>
                     </StackPanel>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
 
-                <controls:DropShadowPanel Grid.Column="2"
-                                          ShadowOpacity="0.16"
-                                          BlurRadius="16"
-                                          OffsetX="0"
-                                          OffsetY="6"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}" Height="140">
+                <Grid Grid.Column="2" Style="{StaticResource DashboardCardStyle}" Height="140">
                     <StackPanel>
                         <TextBlock Text="EFFICIENCY SCORE" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
                         <StackPanel Orientation="Horizontal" Spacing="4">
@@ -280,8 +231,7 @@
                         </StackPanel>
                         <TextBlock Text="{Binding EfficiencyStatus}" FontSize="12" FontFamily="{StaticResource AppFontBold}" Foreground="#F59E0B"/>
                     </StackPanel>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
             </Grid>
 
             <Grid Grid.Row="3" ColumnSpacing="24" Margin="0,0,0,32">
@@ -291,13 +241,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <controls:DropShadowPanel Grid.Column="0"
-                                          ShadowOpacity="0.16"
-                                          BlurRadius="16"
-                                          OffsetX="0"
-                                          OffsetY="6"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}" Height="140">
+                <Grid Grid.Column="0" Style="{StaticResource DashboardCardStyle}" Height="140">
                     <StackPanel Spacing="6">
                         <TextBlock Text="SMART INSIGHT" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -306,38 +250,23 @@
                         </StackPanel>
                         <TextBlock Text="{Binding RevenueTrendDetail}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap"/>
                     </StackPanel>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
 
-                <controls:DropShadowPanel Grid.Column="1"
-                                          ShadowOpacity="0.16"
-                                          BlurRadius="16"
-                                          OffsetX="0"
-                                          OffsetY="6"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}" Height="140">
+                <Grid Grid.Column="1" Style="{StaticResource DashboardCardStyle}" Height="140">
                     <StackPanel Spacing="6">
                         <TextBlock Text="CASH RUNWAY" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
                         <TextBlock Text="{Binding CashRunwayLabel}" FontSize="24" FontFamily="{StaticResource AppFontBlack}" Foreground="{ThemeResource SuccessBrush}"/>
                         <TextBlock Text="{Binding CashRunwayStatus}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
                     </StackPanel>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
 
-                <controls:DropShadowPanel Grid.Column="2"
-                                          ShadowOpacity="0.16"
-                                          BlurRadius="16"
-                                          OffsetX="0"
-                                          OffsetY="6"
-                                          Color="#0B1220">
-                    <Grid Style="{StaticResource DashboardCardStyle}" Height="140">
+                <Grid Grid.Column="2" Style="{StaticResource DashboardCardStyle}" Height="140">
                     <StackPanel Spacing="6">
                         <TextBlock Text="HEALTH SIGNAL" FontSize="11" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="50"/>
                         <TextBlock Text="{Binding InventorySignal}" FontSize="16" FontFamily="{StaticResource AppFontBold}" Foreground="{ThemeResource TextPrimaryBrush}"/>
                         <TextBlock Text="{Binding ProfitSignal}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
                     </StackPanel>
-                    </Grid>
-                </controls:DropShadowPanel>
+                </Grid>
             </Grid>
 
             <Grid Grid.Row="4" ColumnSpacing="32">
