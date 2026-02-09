@@ -20,6 +20,12 @@
                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                 <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             </Style>
+            <Style x:Key="IndentedGridViewItemStyle" TargetType="GridViewItem">
+                <Setter Property="Margin" Value="{StaticResource IndentedGridViewItemMarginSmall}"/>
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            </Style>
 
             <toolkit:AttachedDropShadow x:Key="CardShadow"
                                         BlurRadius="24"
