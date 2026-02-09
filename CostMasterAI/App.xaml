@@ -26,18 +26,15 @@
                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                 <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             </Style>
-            <ControlTemplate x:Key="ControlItemTemplate" TargetType="GridViewItem">
-                <Border Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="{TemplateBinding CornerRadius}">
-                    <ContentPresenter Content="{TemplateBinding Content}"
-                                      ContentTemplate="{TemplateBinding ContentTemplate}"
-                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                      Margin="{TemplateBinding Padding}"/>
+            <DataTemplate x:Key="ControlItemTemplate">
+                <Border Background="{ThemeResource CardBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="12">
+                    <ContentPresenter/>
                 </Border>
-            </ControlTemplate>
+            </DataTemplate>
 
             <toolkit:AttachedDropShadow x:Key="CardShadow"
                                         BlurRadius="24"
