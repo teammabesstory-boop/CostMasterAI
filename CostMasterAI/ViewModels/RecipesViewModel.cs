@@ -402,7 +402,15 @@ namespace CostMasterAI.ViewModels
             // INTEGRASI: Dengarkan perubahan harga dari halaman Bahan Baku
             WeakReferenceMessenger.Default.Register<IngredientsChangedMessage>(this, (r, m) =>
             {
-                App.MainWindow.DispatcherQueue.TryEnqueue(async () => await LoadDataAsync());
+                var dispatcher = App.MainWindow?.DispatcherQueue;
+                if (dispatcher != null)
+                {
+                    dispatcher.TryEnqueue(async () => await LoadDataAsync());
+                }
+                else
+                {
+                    _ = LoadDataAsync();
+                }
             });
 
             _ = LoadDataAsync();

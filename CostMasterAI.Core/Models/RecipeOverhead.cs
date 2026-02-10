@@ -13,6 +13,6 @@ namespace CostMasterAI.Core.Models
 
         // Relasi ke Resep
         public int RecipeId { get; set; }
-        public Recipe Recipe { get; set; }
+        public Recipe Recipe { get; set; } = null!;
     }
 }

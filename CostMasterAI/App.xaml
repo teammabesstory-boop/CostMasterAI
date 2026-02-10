@@ -11,6 +11,31 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
 
+            <x:Double x:Key="Breakpoint640Plus">640</x:Double>
+            <Thickness x:Key="IndentedGridViewItemMarginSmall">0,0,12,12</Thickness>
+
+            <Style x:Key="IndentedGridViewItemStyleSmall" TargetType="GridViewItem">
+                <Setter Property="Margin" Value="{StaticResource IndentedGridViewItemMarginSmall}"/>
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            </Style>
+            <Style x:Key="IndentedGridViewItemStyle" TargetType="GridViewItem">
+                <Setter Property="Margin" Value="{StaticResource IndentedGridViewItemMarginSmall}"/>
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            </Style>
+            <DataTemplate x:Key="ControlItemTemplate">
+                <Border Background="{ThemeResource CardBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="12">
+                    <ContentPresenter/>
+                </Border>
+            </DataTemplate>
+
             <toolkit:AttachedDropShadow x:Key="CardShadow"
                                         BlurRadius="24"
                                         Color="#000000"
